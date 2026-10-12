@@ -1,4 +1,4 @@
-const CACHE='english-quest-v9-5-1';
+const CACHE='english-quest-v9-5-2';
 const ASSETS=['./','./index.html','./app.js','./google-config.js','./words.json','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('english-quest-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));

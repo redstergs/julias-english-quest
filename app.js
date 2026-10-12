@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='9.5.1';
+const APP_VERSION='9.5.2';
 let nextQuestionTimer=null;
 function cancelAutoAdvance(){if(nextQuestionTimer!==null){clearTimeout(nextQuestionTimer);nextQuestionTimer=null}}
 function showAppVersion(){const el=document.getElementById('version-label');if(el)el.textContent="Julia's English Quest · Version "+APP_VERSION}
@@ -150,20 +150,10 @@ const CLOUD_SCOPE='https://www.googleapis.com/auth/drive.appdata';
 const CLOUD_NAME='julias-english-quest-sync.json';
 const cloudPayload=()=>({format:'julia-english-quest-backup',version:1,units,progress,settings});
 const cloudDigest=o=>JSON.stringify(o);
-function cloudStatusText(){if(!CLOUD_CLIENT_ID)return 'Google-OAuth-Client-ID fehlt noch in google-config.js.';if(!cloudToken)return 'Nicht verbunden – der lokale Lernstand bleibt verfügbar.';return cloudBusy?'Synchronisierung läuft …':cloudDirty?'Lokale Änderungen warten auf Synchronisierung.':'Mit Google Drive verbunden.'}
+function cloudStatusText(){if(!CLOUD_CLIENT_ID)return 'Google-OAuth-Client-ID fehlt noch in google-config.js.';if(!cloudToken)return localStorage.getItem(CLOUD_REMEMBER_KEY)==='yes'?'Google Drive war eingerichtet. Zum erneuten Verbinden bitte einmal tippen – Chrome blockiert automatische Anmeldefenster.':'Nicht verbunden – der lokale Lernstand bleibt verfügbar.';return cloudBusy?'Synchronisierung läuft …':cloudDirty?'Lokale Änderungen warten auf Synchronisierung.':'Mit Google Drive verbunden.'}
 function updateCloudStatus(message){let e=$('#cloud-info');if(e)e.textContent=message||cloudStatusText();let s=$('#status');if(s)s.textContent=cloudToken?'☁️ Drive verbunden':'Offline bereit';}
-async function cloudInit(){if(!CLOUD_CLIENT_ID)return;try{await new Promise((resolve,reject)=>{if(window.google?.accounts?.oauth2)return resolve();let s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.onload=resolve;s.onerror=()=>reject(Error('Google-Anmeldung derzeit nicht erreichbar'));document.head.append(s)});tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLOUD_CLIENT_ID,scope:CLOUD_SCOPE,callback:()=>{}});if(localStorage.getItem(CLOUD_REMEMBER_KEY)==='yes')cloudSilentLogin()}catch(e){console.warn('Google-Anmeldung:',e.message)}}
-function cloudSilentLogin(){
- if(!tokenClient||cloudToken)return;
- tokenClient.callback=async r=>{
-   if(r.error||!r.access_token){updateCloudStatus('Google Drive: Bei Bedarf erneut verbinden.');return}
-   cloudToken=r.access_token;
-   updateCloudStatus();
-   try{await cloudSync(false)}catch(e){updateCloudStatus('Synchronisierung: '+e.message)}
- };
- try{tokenClient.requestAccessToken({prompt:''})}catch(e){console.info('Stille Google-Anmeldung nicht möglich:',e.message)}
-}
-function cloudLogin(){if(!CLOUD_CLIENT_ID){alert('Zuerst die Google-OAuth-Client-ID in google-config.js eintragen. Siehe ANLEITUNG-GOOGLE-DRIVE.md.');return}if(!tokenClient){alert('Google-Anmeldung ist noch nicht geladen. Bitte Internetverbindung prüfen und Seite neu laden.');return}tokenClient.callback=async r=>{if(r.error){alert('Google-Anmeldung nicht möglich: '+r.error);return}cloudToken=r.access_token;localStorage.setItem(CLOUD_REMEMBER_KEY,'yes');try{await cloudSync(true)}catch(e){alert('Google Drive: '+e.message)}};tokenClient.requestAccessToken({prompt:cloudToken?'':'consent'})}
+async function cloudInit(){if(!CLOUD_CLIENT_ID)return;try{await new Promise((resolve,reject)=>{if(window.google?.accounts?.oauth2)return resolve();let s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.onload=resolve;s.onerror=()=>reject(Error('Google-Anmeldung derzeit nicht erreichbar'));document.head.append(s)});tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLOUD_CLIENT_ID,scope:CLOUD_SCOPE,callback:()=>{}});updateCloudStatus()}catch(e){console.warn('Google-Anmeldung:',e.message)}}
+function cloudLogin(){if(!CLOUD_CLIENT_ID){alert('Zuerst die Google-OAuth-Client-ID in google-config.js eintragen. Siehe ANLEITUNG-GOOGLE-DRIVE.md.');return}if(!tokenClient){alert('Google-Anmeldung ist noch nicht geladen. Bitte Internetverbindung prüfen und Seite neu laden.');return}tokenClient.callback=async r=>{if(r.error){alert('Google-Anmeldung nicht möglich: '+r.error);return}cloudToken=r.access_token;localStorage.setItem(CLOUD_REMEMBER_KEY,'yes');try{await cloudSync(true)}catch(e){alert('Google Drive: '+e.message)}};tokenClient.requestAccessToken({prompt:''})}
 function cloudLogout(){localStorage.removeItem(CLOUD_REMEMBER_KEY);cloudToken=null;cloudFileId=null;cloudBaseline=null;cloudDirty=false;updateCloudStatus();manage()}
 async function driveFetch(path,opts={}){if(!cloudToken)throw Error('Nicht mit Google verbunden');let r=await fetch('https://www.googleapis.com/'+(opts.upload?'upload/drive/v3/':'drive/v3/')+path,{...opts,headers:{Authorization:'Bearer '+cloudToken,...(opts.headers||{})}});if(r.status===401){cloudToken=null;updateCloudStatus('Google-Anmeldung abgelaufen – bitte erneut verbinden.');throw Error('Google-Anmeldung abgelaufen. Erneut verbinden.')}if(!r.ok)throw Error('Google Drive HTTP '+r.status+': '+(await r.text()).slice(0,250));return r}
 async function cloudFind(){const q=encodeURIComponent("name = '"+CLOUD_NAME+"' and trashed = false");let r=await driveFetch('files?spaces=appDataFolder&q='+q+'&fields=files(id,name,modifiedTime),nextPageToken&page_size=100');let x=await r.json();return (x.files||[]).sort((a,b)=>b.modifiedTime.localeCompare(a.modifiedTime))[0]||null}
