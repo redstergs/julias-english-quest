@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='9.5.0';
+const APP_VERSION='9.5.1';
 let nextQuestionTimer=null;
 function cancelAutoAdvance(){if(nextQuestionTimer!==null){clearTimeout(nextQuestionTimer);nextQuestionTimer=null}}
 function showAppVersion(){const el=document.getElementById('version-label');if(el)el.textContent="Julia's English Quest · Version "+APP_VERSION}
@@ -9,7 +9,7 @@ const CLOUD_REMEMBER_KEY='julia-quest-drive-connected';
 const CLOUD_CLIENT_ID=(window.QUEST_GOOGLE_CLIENT_ID||'').trim();
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>new Date().toLocaleDateString('en-CA');const plusDays=n=>{let d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')};
-const longDate=value=>{if(!value)return '–';const match=String(value).match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);if(!match)return String(value);const d=new Date(+match[1],+match[2]-1,+match[3],12);return new Intl.DateTimeFormat('de-AT',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d)};
+const longDate=value=>{if(!value)return '–';const match=String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!match)return String(value);const d=new Date(+match[1],+match[2]-1,+match[3],12);return new Intl.DateTimeFormat('de-AT',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d)};
 const shortDate=value=>longDate(value);
 const norm=s=>s.toLocaleLowerCase('de').trim().replace(/[.!?]/g,'').replace(/\s+/g,' ').replace(/^to /,'');
 // Accepted spellings: alternatives separated by | or /, optional parenthesized
