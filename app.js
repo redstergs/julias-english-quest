@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='9.10.0';
+const APP_VERSION='9.10.1';
 let nextQuestionTimer=null;
 function cancelAutoAdvance(){if(nextQuestionTimer!==null){clearTimeout(nextQuestionTimer);nextQuestionTimer=null}}
 function showAppVersion(){const el=document.getElementById('version-label');if(el)el.textContent="Julia's English Quest · Version "+APP_VERSION}
@@ -7,7 +7,7 @@ const $=s=>document.querySelector(s), app=$('#app');let db,units=[],progress={},
 let cloudTimer=null,cloudBusy=false,cloudDirty=false,cloudBaseline=null,cloudFileId=null,cloudToken=null,tokenClient=null;
 let cloudExpiresAt=0,cloudRefreshTimer=null,cloudAuthPending=false,cloudAuthState='disconnected';
 const CLOUD_REMEMBER_KEY='julia-quest-drive-connected';
-let cloudLastDiagnostic='Noch kein Anmeldeversuch in dieser Sitzung.',cloudAutoAttempted=false;
+let cloudLastDiagnostic='Noch kein Anmeldeversuch in dieser Sitzung.';
 const CLOUD_CLIENT_ID=(window.QUEST_GOOGLE_CLIENT_ID||'').trim();
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>new Date().toLocaleDateString('en-CA');const plusDays=n=>{let d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')};
@@ -179,10 +179,11 @@ function cloudDiagnostics(){
 }
 function cloudStatusText(){
  if(!CLOUD_CLIENT_ID)return 'Google-OAuth-Client-ID fehlt noch in google-config.js.';
- if(!cloudToken)return cloudAuthState==='expired'?'Google-Anmeldung abgelaufen – bitte erneut verbinden.':cloudAuthState==='error'?'Google-Anmeldung fehlgeschlagen – erneut verbinden.':localStorage.getItem(CLOUD_REMEMBER_KEY)==='yes'?'Google Drive eingerichtet – automatische Wiederverbindung nicht möglich. Bitte einmal verbinden.':'Nicht verbunden – der lokale Lernstand bleibt verfügbar.';
+ if(!cloudToken)return cloudAuthState==='expired'?'Google-Anmeldung abgelaufen – bitte erneut verbinden.':cloudAuthState==='error'?'Google-Anmeldung fehlgeschlagen – erneut verbinden.':localStorage.getItem(CLOUD_REMEMBER_KEY)==='yes'?'Google Drive eingerichtet – bitte nach dem App-Start einmal verbinden.':'Nicht verbunden – der lokale Lernstand bleibt verfügbar.';
  return cloudBusy?'Synchronisierung läuft …':cloudDirty?'Lokale Änderungen warten auf Synchronisierung.':'Mit Google Drive verbunden.';
 }
 function updateCloudStatus(message){
+  if(cloudToken&&cloudExpiresAt&&Date.now()>=cloudExpiresAt){cloudToken=null;cloudAuthState='expired';}
  const e=$('#cloud-info');if(e)e.textContent=message||cloudStatusText();
  const s=$('#status');if(s)s.textContent=cloudToken?'☁️ Drive verbunden':cloudAuthState==='expired'?'☁️ Anmeldung abgelaufen':'Offline bereit';
  const login=$('#cloud-login');if(login){login.textContent=cloudToken?'🔌 Verbindung trennen':'🔐 Mit Google verbinden';login.disabled=cloudAuthPending;login.onclick=cloudToken?cloudLogout:cloudLogin}
@@ -197,8 +198,12 @@ async function cloudInit(){
  if(!CLOUD_CLIENT_ID)return;
  try{await new Promise((resolve,reject)=>{if(window.google?.accounts?.oauth2)return resolve();let s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.onload=resolve;s.onerror=()=>reject(Error('Google-Anmeldung derzeit nicht erreichbar'));document.head.append(s)});
  tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLOUD_CLIENT_ID,scope:CLOUD_SCOPE,callback:()=>{}});updateCloudStatus();
- // Try exactly once after startup. Browser popup policies may prevent this without a click.
- if(localStorage.getItem(CLOUD_REMEMBER_KEY)==='yes'&&!cloudAutoAttempted){cloudAutoAttempted=true;cloudRequestToken(false)}
+  // Google Identity Services token flow opens a popup. Do not invoke it without a user gesture:
+  // installed PWAs and browsers reject startup popups with popup_failed_to_open.
+ if(localStorage.getItem(CLOUD_REMEMBER_KEY)==='yes'){
+    cloudLastDiagnostic='Wiederverbindung wartet auf Klick (kein automatisches Popup)';
+    updateCloudStatus();
+  }
  }catch(e){console.warn('Google-Anmeldung:',e.message);cloudAuthState='error';updateCloudStatus()}
 }
 function cloudRequestToken(interactive=false){
@@ -209,13 +214,13 @@ function cloudRequestToken(interactive=false){
   if(r.error||!r.access_token){cloudLastDiagnostic='Google: '+(r.error||'kein Zugriffstoken');if(!cloudToken)cloudAuthState='expired';updateCloudStatus();if(interactive)alert('Google-Anmeldung nicht möglich: '+(r.error||'Kein Zugriffstoken'));return}
   cloudLastDiagnostic='Zugriffstoken erfolgreich erhalten';cloudToken=r.access_token;cloudExpiresAt=Date.now()+Math.max(60,Number(r.expires_in)||3600)*1000;cloudAuthState='connected';localStorage.setItem(CLOUD_REMEMBER_KEY,'yes');
   clearTimeout(cloudRefreshTimer);
-  // GIS may need a user gesture to show its account chooser. If silent renewal is blocked, retain the current token until it expires.
-  cloudRefreshTimer=setTimeout(()=>cloudRequestToken(false),Math.max(30000,cloudExpiresAt-Date.now()-120000));
+   // No background popup attempts: they are blocked without a user gesture.
+   // On expiry the next user-initiated connection can obtain a new token.
   updateCloudStatus();
   if(interactive)await cloudSync(true);else queueCloudSync(1000);
  };
  tokenClient.error_callback=e=>{cloudAuthPending=false;cloudLastDiagnostic='Anmeldefenster: '+(e?.type||'nicht verfügbar');if(!cloudToken)cloudAuthState='expired';updateCloudStatus();};
- try{cloudLastDiagnostic=interactive?'Manueller Anmeldeversuch':'Automatischer Anmeldeversuch';tokenClient.requestAccessToken({prompt:''})}catch(e){cloudLastDiagnostic='Anmeldung blockiert: '+e.message;cloudAuthPending=false;if(!cloudToken)cloudAuthState='error';updateCloudStatus();if(interactive)alert('Google-Anmeldung: '+e.message)}
+ try{cloudLastDiagnostic=interactive?'Manueller Anmeldeversuch':'Automatischer Anmeldeversuch';tokenClient.requestAccessToken({prompt:interactive?'select_account':''})}catch(e){cloudLastDiagnostic='Anmeldung blockiert: '+e.message;cloudAuthPending=false;if(!cloudToken)cloudAuthState='error';updateCloudStatus();if(interactive)alert('Google-Anmeldung: '+e.message)}
 }
 function cloudLogin(){
  if(!CLOUD_CLIENT_ID){alert('Zuerst die Google-OAuth-Client-ID in google-config.js eintragen.');return}
@@ -255,7 +260,7 @@ async function cloudSync(interactive=false){if(!cloudToken||cloudBusy)return;clo
  }catch(e){updateCloudStatus('Synchronisierung fehlgeschlagen: '+e.message);if(interactive)alert('Synchronisierung fehlgeschlagen: '+e.message)}finally{cloudBusy=false}}
 async function cloudApply(data){if(session)throw Error('Bitte erst die laufende Lernrunde beenden, bevor du einen anderen Lernstand lädst.');units=data.units;progress=data.progress;settings=data.settings;ensureSettings();sortUnits();await Promise.all([put('units',units),put('progress',progress),put('settings',settings)]);home()}
 window.addEventListener('online',()=>{if(cloudToken)queueCloudSync(500)});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloudToken)queueCloudSync(500)});
-setInterval(()=>{if(cloudToken&&!document.hidden)cloudSync(false).catch(console.warn)},60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){updateCloudStatus();if(cloudToken)queueCloudSync(500)}});
+setInterval(()=>{if(!document.hidden){updateCloudStatus();if(cloudToken)cloudSync(false).catch(console.warn)}},60000);
 
 (async()=>{try{db=await openDB();let initial=await (await fetch('words.json')).json();units=await get('units')||initUnits(initial.units);progress=await get('progress')||{};settings=await get('settings')||settings;ensureSettings();sortUnits();await save();cloudDirty=false;home();showAppVersion();cloudInit().catch(console.warn);if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').then(()=>{updateCloudStatus()}).catch(()=>{$('#status').textContent='Offline-Installation prüfen'})}catch(e){app.innerHTML='<section class="card"><h2>Start nicht möglich</h2><p>Bitte die App über localhost oder eine HTTPS-Adresse öffnen. Details: '+esc(e.message)+'</p></section>'}})();
