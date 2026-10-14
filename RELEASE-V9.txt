@@ -1,0 +1,11 @@
+Julia’s English Quest V9
+
+NEU: Farbwelten je Unit, Enter-Taste zur nächsten Frage, sichtbare Versionsnummer, Unit-Dashboard, gezieltes Training, Schreib-Probetest, Testdatum/Countdown, Schulresultat mit >50%-Regel und Auszeichnungen.
+
+Schulergebnis: Bei >50% werden alle Wörter der Unit schulisch beherrscht, außer ausdrücklich markierten Fehlerwörtern. Bei <=50% werden keine zusätzlichen Wörter markiert. Bisherige Fortschritte bleiben erhalten. Fehlerwörter können wieder gezielt geübt werden.
+
+Google Drive V7/V8: Die bisherige Synchronisierung bleibt unverändert (keine konfliktfreie Mehrgeräte-Zusammenführung). Neue Einstellungen sind in settings enthalten und damit im Backup/Drive-Payload.
+
+Update: ZUERST Backup exportieren. Für das GitHub-Update app.js, index.html und sw.js ersetzen. Die übrigen Dateien bleiben unverändert. Die Version ist im Footer sichtbar.
+
+Wichtig: Der Probetest bewertet, ohne den Lernfortschritt zu verändern. Eine spätere Korrektur des Schulergebnisses vergibt keine zweiten XP.

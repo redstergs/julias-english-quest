@@ -1,0 +1,1 @@
+V9.8.0 – Neue Units werden gesperrt importiert. Freigabe unter Units & Backup. Bestehende Units bleiben aktiv; manuelle Schulbeherrschung entfernt.

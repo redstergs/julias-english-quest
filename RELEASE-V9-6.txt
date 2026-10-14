@@ -1,0 +1,1 @@
+Version 9.6.0: Motivierende Startseite mit Heldin aus der ersten Illustration. Naechster Schultest hat Vorrang; sonst neueste unvollstaendige Unit; sonst Wiederholung. Nur Unit-Ziel hat Fortschrittsbalken. Unveraenderte Lernlogik und Google-Anmeldung.

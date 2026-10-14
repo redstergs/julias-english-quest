@@ -1,0 +1,1 @@
+Version 9.2.0: Eingabefokus bei Schreibfragen; nach richtiger Antwort automatische nächste Frage nach 3 Sekunden; Versionsanzeige aus APP_VERSION; Cache v9-2. Für GitHub app.js, index.html und sw.js ersetzen. Vorher Backup erstellen.

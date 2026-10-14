@@ -1,0 +1,9 @@
+V9.10.1: Google Drive Anmeldung nach PWA-Start
+
+- Keine automatisch blockierten Google-Anmeldepopups mehr beim Start.
+- Kein Hintergrund-Popup zur Token-Erneuerung.
+- Nach Neustart Google Drive einmal per Klick verbinden.
+- Manuelle Anmeldung nutzt den Google-Kontowahldialog.
+- Status meldet abgelaufenes Token; lokale Daten bleiben erhalten.
+
+WICHTIG: Ohne Backend/Refresh-Token ist eine automatische Wiederverbindung nach Neustart nicht garantiert.

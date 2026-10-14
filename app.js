@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='9.10.1';
+const APP_VERSION='9.11.0';
 let nextQuestionTimer=null;
 function cancelAutoAdvance(){if(nextQuestionTimer!==null){clearTimeout(nextQuestionTimer);nextQuestionTimer=null}}
 function showAppVersion(){const el=document.getElementById('version-label');if(el)el.textContent="Julia's English Quest · Version "+APP_VERSION}
@@ -82,7 +82,7 @@ function question(){cancelAutoAdvance();if(!session)return;applyTheme(byId(sessi
 function check(value){cancelAutoAdvance();let s=session;if(s.answered)return;s.answered=true;let w=byId(s.current);let variants=answerVariants(s.ask==='de-en'?w.en:w.de);if(s.ask==='de-en'&&w.en==='there is')variants.push("there's");let ok=variants.some(v=>norm(v)===norm(value));s.seen++;if(ok)s.correct++;else if(!s.review.includes(w.id))s.review.push(w.id);if(!s.mock)progressUpdate(w.id,ok,s.write,s.voluntaryIds.has(w.id));if(!ok)s.voluntaryIds.delete(w.id);document.querySelectorAll('.answer').forEach(b=>b.disabled=true);let form=$('#answerform');if(form)form.querySelectorAll('input,button').forEach(x=>x.disabled=true);$('#feedback').innerHTML=`<div class="feedback ${ok?'':'bad'}"><strong>${ok?'🌟 Excellent!':'🔁 Das üben wir noch einmal!'}</strong><p>${ok?'Gut gemacht!':'Richtige Antwort: <strong>'+esc(variants.join(' / '))+'</strong>'}</p><button id="next">Weiter →</button></div>`;const nextButton=$('#next');let advanced=false;nextButton.onclick=()=>{if(advanced||session!==s)return;advanced=true;cancelAutoAdvance();s.index++;if(s.index>=s.queue.length){if(s.review.length&&!s.mock){s.queue=shuffle(s.review);s.review=[];s.index=0}else if(!s.writingPass&&s.initialMC.length){const pending=s.initialMC.filter(id=>stat(id).stage<2);if(pending.length&&s.mcPass<2){s.mcPass++;s.queue=shuffle(pending);s.index=0}else{const ready=s.initialMC.filter(id=>stat(id).stage>=2);if(ready.length){s.writingPass=true;s.queue=shuffle(ready);s.index=0}else{return complete()}}}else{return complete()}}question()};if(ok){nextQuestionTimer=setTimeout(()=>{nextQuestionTimer=null;if(session===s&&s.answered&&!advanced&&document.getElementById('next')===nextButton)nextButton.click()},3000)}}
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&session?.answered&&$('#next')&&!e.repeat){e.preventDefault();$('#next').click()}});
 function advanceOnEnter(e){if(e.key==='Enter'&&session?.answered&&!e.repeat){e.preventDefault();$('#next')?.click()}}
-function complete(){cancelAutoAdvance();if(session&&!session.mock){ensureSettings();let dates=settings.studyDays||[];if(!dates.includes(today()))dates.push(today());settings.studyDays=dates;if(dates.length>=5)award('five-days','🔥 Lernheldin · an 5 Tagen geübt');save()}if(cloudToken)queueCloudSync(150);let s=session;app.innerHTML=`<section class="card" style="text-align:center"><div style="font-size:3rem">🏆</div><h2>Fantastic, Julia!</h2><p><strong>${s.correct} von ${s.seen}</strong> Antworten richtig</p><p>${s.mock?'Probetest – '+Math.round(s.correct/Math.max(1,s.seen)*100)+' % richtig':'Gesamt: ⭐ '+settings.xp+' XP'}</p><div class="buttons"><button id="again">Noch eine Runde</button><button id="home" class="secondary">Zur Startseite</button></div></section>`;$('#again').onclick=()=>s.unitId?unitDashboard(s.unitId):home();$('#home').onclick=home}
+function complete(){cancelAutoAdvance();if(session&&!session.mock){ensureSettings();let dates=settings.studyDays||[];if(!dates.includes(today()))dates.push(today());settings.studyDays=dates;if(dates.length>=5)award('five-days','🔥 Lernheldin · an 5 Tagen geübt');save()}if(cloudUser)queueCloudSync(150);let s=session;app.innerHTML=`<section class="card" style="text-align:center"><div style="font-size:3rem">🏆</div><h2>Fantastic, Julia!</h2><p><strong>${s.correct} von ${s.seen}</strong> Antworten richtig</p><p>${s.mock?'Probetest – '+Math.round(s.correct/Math.max(1,s.seen)*100)+' % richtig':'Gesamt: ⭐ '+settings.xp+' XP'}</p><div class="buttons"><button id="again">Noch eine Runde</button><button id="home" class="secondary">Zur Startseite</button></div></section>`;$('#again').onclick=()=>s.unitId?unitDashboard(s.unitId):home();$('#home').onclick=home}
 function overview(){
  cancelAutoAdvance();session=null;ensureSettings();sortUnits();applyTheme('daily');
  const sc=overallScore(),total=all().length,pct=total?Math.round(all().reduce((sum,w)=>sum+wordLearningPercent(w.id),0)/total):0,securePct=total?Math.round(100*sc.secure.length/total):0;
@@ -165,102 +165,102 @@ $('#back').onclick=()=>unitDashboard(id);let preview=()=>{let n=Number($('#corre
 $('#saveResult').onclick=async()=>{let n=Number($('#correct').value),total=Number($('#total').value);if($('#correct').value===''||!Number.isInteger(n)||!Number.isInteger(total)||total<=0||n<0||n>total)return alert('Bitte gültige Zahlen eingeben.');let passed=n/total>.5,errors=[...document.querySelectorAll('.errorword:checked')].map(e=>e.value);if(passed&&n<total&&errors.length===0)return alert('Bitte mindestens ein Fehlerwort auswählen.');if(passed&&errors.length>total-n)return alert('Mehr Fehlerwörter ausgewählt als Fehler im Test.');if(!confirm(`Schulergebnis ${n}/${total} speichern? ${passed?'Alle Wörter außer den markierten Fehlerwörtern werden schulisch beherrscht.':'Bei höchstens 50 % bleiben die bisherigen Lernstände unverändert.'}`))return;
 settings.tests[id]||={};let previous=settings.tests[id].result;settings.tests[id].result={correct:n,total,date:today(),errors};if(passed){for(let w of u.words){let st={...stat(w.id)};if(errors.includes(w.id)){st.schoolMastered=false;st.stage=Math.min(st.stage,2);st.reviewStep=0;st.due=today()}else{st.schoolMastered=true;st.stage=5;st.reviewStep=0;st.due=plusDays(7)}progress[w.id]=st}}
 award('school-'+id+'-'+n+'-'+total,n===total?'🏆 Goldener Vokabelstar · '+u.title:n/total>=.9?'🥇 Vokabel-Champion · '+u.title:'🌟 Schultest geschafft · '+u.title);if(!previous)settings.xp+=(n===total?150:n/total>=.9?100:n/total>.5?50:20);await save();alert('🎉 Ergebnis gespeichert! Deine Belohnung wurde vergeben.');unitDashboard(id)}}
-function manage(){cancelAutoAdvance();sortUnits();app.innerHTML=`<section class="card"><div class="flex"><h2>⚙️ Units & Backup</h2><button id="back" class="secondary">← Zurück</button></div><p class="muted small">Neue Units sind zunächst gesperrt. Du kannst sie jederzeit zum Üben freigeben. Bereits freigegebene Units bleiben aktiv.</p>${units.map(u=>`<div class="wordrow"><div><strong>${isReleased(u)?'📖':'🔒'} ${esc(u.title)}</strong><br><small>${u.words.length} Wörter · ${isReleased(u)?'Zum Üben freigegeben':'Noch nicht freigegeben'}</small></div>${isReleased(u)?'<span class="muted small">✓ Aktiv</span>':`<button class="secondary" data-release="${esc(u.id)}">🔓 Zum Üben freigeben</button>`}</div>`).join('')}<h3>Neue Unit importieren</h3><p class="muted small">JSON-Datei mit Unit-ID, Titel und englisch/deutschen Vokabeln. Bereits gelernte Wörter bleiben erhalten.</p><label class="filelabel" for="unitfile">📥 Unit-JSON auswählen</label><input id="unitfile" type="file" accept=".json,application/json"><h3>Google Drive – Gerätesynchronisierung</h3><p class="muted small">Privater App-Speicher im Google-Konto. Nach Anmeldung wird automatisch synchronisiert, solange die App geöffnet ist und eine gültige Anmeldung besteht. Bei unterschiedlichen Änderungen auf zwei Geräten wird nachgefragt, statt Daten still zu überschreiben.</p><p id="cloud-info" class="muted small">${cloudStatusText()}</p><div class="buttons"><button id="cloud-login" class="secondary">🔐 Mit Google verbinden</button><button id="cloud-now" class="secondary" ${cloudToken?'':'disabled'}>☁️ Jetzt synchronisieren</button><button id="cloud-diagnostic" class="secondary">🔎 Verbindungsdiagnose</button></div><h3>Gesamten Lernstand sichern</h3><div class="buttons"><button id="export">💾 Backup herunterladen</button><label class="filelabel" for="backupfile">📂 Backup wiederherstellen</label><input id="backupfile" type="file" accept=".json,application/json"></div><p class="muted small">Beim Wiederherstellen werden die aktuellen Daten ersetzt. Erstelle vorher ein Backup.</p><h3>Importformat</h3><p class="muted small">Siehe beiliegende Datei BEISPIEL-UNIT-IMPORT.json.</p></section>`;$('#back').onclick=home;$('#cloud-login').onclick=cloudLogin;$('#cloud-now').onclick=()=>cloudSync(true);$('#cloud-diagnostic').onclick=cloudDiagnostics;updateCloudStatus();document.querySelectorAll('[data-release]').forEach(b=>b.onclick=async()=>{const u=units.find(x=>x.id===b.dataset.release);if(!u||isReleased(u))return;u.released=true;await save();manage()});$('#export').onclick=()=>download('julia-english-quest-backup-'+today()+'.json',{format:'julia-english-quest-backup',version:1,units,progress,settings});$('#unitfile').onchange=async e=>{try{let raw=JSON.parse(await e.target.files[0].text());let incoming=initUnits(raw.units||[raw]);for(let u of incoming){let existing=units.find(x=>x.id===u.id);if(existing){let ids=new Set(existing.words.map(w=>w.id));for(let w of u.words){if(!ids.has(w.id))existing.words.push(w)}}else{u.released=false;units.push(u)}}sortUnits();await save();alert('Unit erfolgreich importiert!');manage()}catch(err){alert('Import fehlgeschlagen: '+err.message)}};$('#backupfile').onchange=async e=>{try{let raw=JSON.parse(await e.target.files[0].text());if(raw.format!=='julia-english-quest-backup'||!Array.isArray(raw.units)||!raw.progress||!raw.settings)throw Error('Ungültiges Backup');if(!confirm('Aktuelle Daten durch das Backup ersetzen?'))return;units=raw.units;progress=raw.progress;settings=raw.settings;ensureSettings();sortUnits();await save();alert('Backup wiederhergestellt');home()}catch(err){alert('Wiederherstellung fehlgeschlagen: '+err.message)}}}
+function manage(){cancelAutoAdvance();sortUnits();app.innerHTML=`<section class="card"><div class="flex"><h2>⚙️ Units & Backup</h2><button id="back" class="secondary">← Zurück</button></div><p class="muted small">Neue Units sind zunächst gesperrt. Du kannst sie jederzeit zum Üben freigeben. Bereits freigegebene Units bleiben aktiv.</p>${units.map(u=>`<div class="wordrow"><div><strong>${isReleased(u)?'📖':'🔒'} ${esc(u.title)}</strong><br><small>${u.words.length} Wörter · ${isReleased(u)?'Zum Üben freigegeben':'Noch nicht freigegeben'}</small></div>${isReleased(u)?'<span class="muted small">✓ Aktiv</span>':`<button class="secondary" data-release="${esc(u.id)}">🔓 Zum Üben freigeben</button>`}</div>`).join('')}<h3>Neue Unit importieren</h3><p class="muted small">JSON-Datei mit Unit-ID, Titel und englisch/deutschen Vokabeln. Bereits gelernte Wörter bleiben erhalten.</p><label class="filelabel" for="unitfile">📥 Unit-JSON auswählen</label><input id="unitfile" type="file" accept=".json,application/json"><h3>Firebase – Gerätesynchronisierung</h3><p class="muted small">Automatische Anmeldung nach Neustart. Der Lernstand bleibt offline verfügbar. Bei konkurrierenden Änderungen werden Daten niemals automatisch überschrieben.</p><p id="cloud-info" class="muted small">${cloudStatusText()}</p><div class="buttons"><button id="cloud-login" class="secondary">🔐 Mit Google anmelden</button><button id="cloud-now" class="secondary" ${cloudUser?'':'disabled'}>☁️ Jetzt synchronisieren</button><button id="cloud-diagnostic" class="secondary">🔎 Verbindungsdiagnose</button></div><h3>Gesamten Lernstand sichern</h3><div class="buttons"><button id="export">💾 Backup herunterladen</button><label class="filelabel" for="backupfile">📂 Backup wiederherstellen</label><input id="backupfile" type="file" accept=".json,application/json"></div><p class="muted small">Beim Wiederherstellen werden die aktuellen Daten ersetzt. Erstelle vorher ein Backup.</p><h3>Importformat</h3><p class="muted small">Siehe beiliegende Datei BEISPIEL-UNIT-IMPORT.json.</p></section>`;$('#back').onclick=home;$('#cloud-login').onclick=cloudLogin;$('#cloud-now').onclick=()=>cloudSync(true);$('#cloud-diagnostic').onclick=cloudDiagnostics;updateCloudStatus();document.querySelectorAll('[data-release]').forEach(b=>b.onclick=async()=>{const u=units.find(x=>x.id===b.dataset.release);if(!u||isReleased(u))return;u.released=true;await save();manage()});$('#export').onclick=()=>download('julia-english-quest-backup-'+today()+'.json',{format:'julia-english-quest-backup',version:1,units,progress,settings});$('#unitfile').onchange=async e=>{try{let raw=JSON.parse(await e.target.files[0].text());let incoming=initUnits(raw.units||[raw]);for(let u of incoming){let existing=units.find(x=>x.id===u.id);if(existing){let ids=new Set(existing.words.map(w=>w.id));for(let w of u.words){if(!ids.has(w.id))existing.words.push(w)}}else{u.released=false;units.push(u)}}sortUnits();await save();alert('Unit erfolgreich importiert!');manage()}catch(err){alert('Import fehlgeschlagen: '+err.message)}};$('#backupfile').onchange=async e=>{try{let raw=JSON.parse(await e.target.files[0].text());if(raw.format!=='julia-english-quest-backup'||!Array.isArray(raw.units)||!raw.progress||!raw.settings)throw Error('Ungültiges Backup');if(!confirm('Aktuelle Daten durch das Backup ersetzen?'))return;units=raw.units;progress=raw.progress;settings=raw.settings;ensureSettings();sortUnits();await save();alert('Backup wiederhergestellt');home()}catch(err){alert('Wiederherstellung fehlgeschlagen: '+err.message)}}}
 function download(name,obj){let blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)}
 
-// Google Identity Services OAuth token flow. No secrets in the static GitHub Pages app.
-const CLOUD_SCOPE='https://www.googleapis.com/auth/drive.appdata';
-const CLOUD_NAME='julias-english-quest-sync.json';
+// Firebase Authentication persists the user session across PWA restarts.
+// The learning database remains local (IndexedDB), including offline use.
 const cloudPayload=()=>({format:'julia-english-quest-backup',version:1,units,progress,settings});
 const cloudDigest=o=>JSON.stringify(o);
-function cloudDiagnostics(){
- const lines=['Google-Drive-Diagnose · Version '+APP_VERSION,'OAuth-Konfiguration: '+(CLOUD_CLIENT_ID?'vorhanden':'fehlt'),'Google-Anmeldebibliothek: '+(tokenClient?'geladen':'nicht geladen'),'Zugriffstoken: '+(cloudToken?'vorhanden':'nicht vorhanden'),'Token-Ablauf: '+(cloudExpiresAt?new Date(cloudExpiresAt).toLocaleString('de-AT'):'unbekannt'),'Verbindungsstatus: '+cloudAuthState,'Frühere Verbindung: '+(localStorage.getItem(CLOUD_REMEMBER_KEY)==='yes'?'ja':'nein'),'Letzter Anmeldeversuch: '+cloudLastDiagnostic,'Lokale Änderungen: '+(cloudDirty?'ja':'nein')];
- alert(lines.join('\n'));
-}
+const cloudBaselineKey=uid=>'firebase-baseline-'+uid;
 function cloudStatusText(){
- if(!CLOUD_CLIENT_ID)return 'Google-OAuth-Client-ID fehlt noch in google-config.js.';
- if(!cloudToken)return cloudAuthState==='expired'?'Google-Anmeldung abgelaufen – bitte erneut verbinden.':cloudAuthState==='error'?'Google-Anmeldung fehlgeschlagen – erneut verbinden.':localStorage.getItem(CLOUD_REMEMBER_KEY)==='yes'?'Google Drive eingerichtet – bitte nach dem App-Start einmal verbinden.':'Nicht verbunden – der lokale Lernstand bleibt verfügbar.';
- return cloudBusy?'Synchronisierung läuft …':cloudDirty?'Lokale Änderungen warten auf Synchronisierung.':'Mit Google Drive verbunden.';
+ if(!FIREBASE_CONFIG)return 'Firebase-Konfiguration fehlt.';
+ if(!cloudAuthReady)return 'Firebase-Anmeldung wird geprüft …';
+ if(!cloudUser)return 'Nicht angemeldet – alle Lernstände bleiben lokal erhalten.';
+ return cloudMessage||(cloudBusy?'Firebase synchronisiert …':cloudDirty?'Lokale Änderungen warten auf Synchronisierung.':'Firebase verbunden · '+(cloudUser.email||'Google-Konto'));
 }
 function updateCloudStatus(message){
-  if(cloudToken&&cloudExpiresAt&&Date.now()>=cloudExpiresAt){cloudToken=null;cloudAuthState='expired';}
- const e=$('#cloud-info');if(e)e.textContent=message||cloudStatusText();
- const s=$('#status');if(s)s.textContent=cloudToken?'☁️ Drive verbunden':cloudAuthState==='expired'?'☁️ Anmeldung abgelaufen':'Offline bereit';
- const login=$('#cloud-login');if(login){login.textContent=cloudToken?'🔌 Verbindung trennen':'🔐 Mit Google verbinden';login.disabled=cloudAuthPending;login.onclick=cloudToken?cloudLogout:cloudLogin}
- const sync=$('#cloud-now');if(sync)sync.disabled=!cloudToken;
+ if(message!==undefined)cloudMessage=message;
+ const e=$('#cloud-info');if(e)e.textContent=cloudStatusText();
+ const s=$('#status');if(s)s.textContent=cloudUser?'☁️ Firebase verbunden':cloudAuthReady?'Offline bereit':'☁️ Anmeldung prüfen';
+ const login=$('#cloud-login');if(login){login.textContent=cloudUser?'🔌 Abmelden':'🔐 Mit Google anmelden';login.onclick=cloudUser?cloudLogout:cloudLogin;login.disabled=!cloudAuthReady;}
+ const sync=$('#cloud-now');if(sync)sync.disabled=!cloudUser||cloudBusy;
 }
-function cloudClearToken(state='disconnected'){
- clearTimeout(cloudRefreshTimer);cloudRefreshTimer=null;clearTimeout(cloudTimer);
- cloudToken=null;cloudExpiresAt=0;cloudAuthState=state;cloudAuthPending=false;
- updateCloudStatus();
-}
+function cloudDiagnostics(){alert(['Firebase-Diagnose · '+APP_VERSION,'SDK: '+(cloudAuth?'geladen':'nicht geladen'),'Anmeldung geprüft: '+(cloudAuthReady?'ja':'nein'),'Angemeldet: '+(cloudUser?.email||'nein'),'Benutzer-ID: '+(cloudUser?.uid||'–'),'Lokale Änderungen: '+(cloudDirty?'ja':'nein'),'Synchronisierung läuft: '+(cloudBusy?'ja':'nein'),'Vergleichsbasis: '+(cloudBaseline?'vorhanden':'nicht vorhanden'),'Status: '+cloudStatusText()].join('\n'))}
 async function cloudInit(){
- if(!CLOUD_CLIENT_ID)return;
- try{await new Promise((resolve,reject)=>{if(window.google?.accounts?.oauth2)return resolve();let s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.onload=resolve;s.onerror=()=>reject(Error('Google-Anmeldung derzeit nicht erreichbar'));document.head.append(s)});
- tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLOUD_CLIENT_ID,scope:CLOUD_SCOPE,callback:()=>{}});updateCloudStatus();
-  // Google Identity Services token flow opens a popup. Do not invoke it without a user gesture:
-  // installed PWAs and browsers reject startup popups with popup_failed_to_open.
- if(localStorage.getItem(CLOUD_REMEMBER_KEY)==='yes'){
-    cloudLastDiagnostic='Wiederverbindung wartet auf Klick (kein automatisches Popup)';
-    updateCloudStatus();
+ try{
+  if(!window.firebase||!FIREBASE_CONFIG)throw Error('Firebase-SDK oder Konfiguration fehlt');
+  if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
+  cloudAuth=firebase.auth();cloudStore=firebase.firestore();
+  await cloudAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  cloudAuth.onAuthStateChanged(async user=>{
+   cloudUser=user;cloudAuthReady=true;cloudMessage='';
+   clearTimeout(cloudTimer);cloudBaseline=user?(await get(cloudBaselineKey(user.uid))||null):null;
+   updateCloudStatus();
+   if(user)queueCloudSync(1200);
+  },error=>{cloudAuthReady=true;updateCloudStatus('Anmeldefehler: '+error.message)});
+ }catch(e){cloudAuthReady=true;updateCloudStatus('Firebase nicht verfügbar: '+e.message);console.warn(e)}
+}
+async function cloudLogin(){
+ if(!cloudAuth)return alert('Firebase ist noch nicht geladen. Bitte Verbindung prüfen.');
+ try{await cloudAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider())}
+ catch(e){updateCloudStatus('Anmeldung fehlgeschlagen: '+e.message);alert('Google-Anmeldung fehlgeschlagen: '+e.message)}
+}
+async function cloudLogout(){
+ if(cloudDirty&&!confirm('Lokale Änderungen sind möglicherweise noch nicht synchronisiert. Trotzdem abmelden?'))return;
+ await cloudAuth.signOut();cloudUser=null;cloudBaseline=null;updateCloudStatus();manage();
+}
+function queueCloudSync(delay=2500){if(!cloudUser)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>cloudSync(false).catch(e=>{console.warn(e);updateCloudStatus('Synchronisierung fehlgeschlagen: '+e.message)}),delay)}
+async function cloudApply(data){
+ if(session)throw Error('Bitte zuerst die laufende Lernrunde beenden.');
+ if(!data||data.format!=='julia-english-quest-backup'||!Array.isArray(data.units)||!data.progress||!data.settings)throw Error('Ungültiger Firebase-Lernstand');
+ units=data.units;progress=data.progress;settings=data.settings;ensureSettings();sortUnits();
+ await Promise.all([put('units',units),put('progress',progress),put('settings',settings)]);home();
+}
+async function cloudSync(interactive=false){
+ if(!cloudUser||cloudBusy||!navigator.onLine)return;
+ const user=cloudUser;cloudBusy=true;updateCloudStatus();
+ try{
+  const ref=cloudStore.collection('users').doc(user.uid).collection('data').doc('learning');
+  // Read from server so an old offline cache cannot overwrite a newer device.
+  const snap=await ref.get({source:'server'});
+  if(cloudUser!==user)return;
+  const remote=snap.exists?snap.data().payload:null;
+  if(remote&&(!Array.isArray(remote.units)||!remote.progress||!remote.settings))throw Error('Firebase-Datenformat ungültig');
+  const local=cloudPayload(),localHash=cloudDigest(local),remoteHash=remote?cloudDigest(remote):null;
+  const baseline=cloudBaseline;
+  if(remoteHash===localHash){cloudBaseline=localHash;await put(cloudBaselineKey(user.uid),localHash);cloudDirty=false;updateCloudStatus('✓ Beide Geräte auf demselben Lernstand.');return}
+  let action=null;
+  if(!remote){action='upload'}
+  else if(baseline===localHash){action='download'}
+  else if(baseline===remoteHash){action='upload'}
+  else if(interactive){
+   const choice=prompt('Unterschiedliche Lernstände in Firebase und auf diesem Gerät.\n\nDRIVE = Firebase-Lernstand übernehmen\nLOKAL = lokalen Lernstand hochladen\nAbbrechen = nichts ändern\n\nACHTUNG: Vor dem Ersetzen nach Möglichkeit beide Stände sichern.','');
+   if(choice?.trim().toUpperCase()==='DRIVE')action='download';
+   if(choice?.trim().toUpperCase()==='LOKAL')action='upload';
   }
- }catch(e){console.warn('Google-Anmeldung:',e.message);cloudAuthState='error';updateCloudStatus()}
+  if(!action){updateCloudStatus('⚠️ Unterschiedliche Lernstände. In „Units & Backup“ auf „Jetzt synchronisieren“ klicken.');return}
+  if(action==='download'){
+   await cloudApply(remote);cloudBaseline=remoteHash;await put(cloudBaselineKey(user.uid),remoteHash);cloudDirty=false;
+   updateCloudStatus('✓ Lernstand aus Firebase übernommen.');return;
+  }
+  // Transaction re-checks the server document. Never overwrite a change that
+  // arrived after our initial read (including changes from another device).
+  await cloudStore.runTransaction(async tx=>{
+   const current=await tx.get(ref);
+   const now=current.exists?cloudDigest(current.data().payload):null;
+   if(now!==remoteHash)throw Error('Firebase wurde inzwischen auf einem anderen Gerät verändert. Bitte erneut synchronisieren.');
+   tx.set(ref,{payload:local,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+  });
+  cloudBaseline=localHash;await put(cloudBaselineKey(user.uid),localHash);
+  cloudDirty=cloudDigest(cloudPayload())!==localHash;
+  updateCloudStatus(cloudDirty?'Neue lokale Änderungen warten auf Synchronisierung.':'✓ Lernstand in Firebase gespeichert.');
+  if(cloudDirty)queueCloudSync(1500);
+ }catch(e){updateCloudStatus('Synchronisierung fehlgeschlagen: '+e.message);if(interactive)alert('Synchronisierung fehlgeschlagen: '+e.message)}
+ finally{cloudBusy=false;updateCloudStatus()}
 }
-function cloudRequestToken(interactive=false){
- if(!tokenClient||cloudAuthPending)return;
- cloudAuthPending=true;updateCloudStatus();
- tokenClient.callback=async r=>{
-  cloudAuthPending=false;
-  if(r.error||!r.access_token){cloudLastDiagnostic='Google: '+(r.error||'kein Zugriffstoken');if(!cloudToken)cloudAuthState='expired';updateCloudStatus();if(interactive)alert('Google-Anmeldung nicht möglich: '+(r.error||'Kein Zugriffstoken'));return}
-  cloudLastDiagnostic='Zugriffstoken erfolgreich erhalten';cloudToken=r.access_token;cloudExpiresAt=Date.now()+Math.max(60,Number(r.expires_in)||3600)*1000;cloudAuthState='connected';localStorage.setItem(CLOUD_REMEMBER_KEY,'yes');
-  clearTimeout(cloudRefreshTimer);
-   // No background popup attempts: they are blocked without a user gesture.
-   // On expiry the next user-initiated connection can obtain a new token.
-  updateCloudStatus();
-  if(interactive)await cloudSync(true);else queueCloudSync(1000);
- };
- tokenClient.error_callback=e=>{cloudAuthPending=false;cloudLastDiagnostic='Anmeldefenster: '+(e?.type||'nicht verfügbar');if(!cloudToken)cloudAuthState='expired';updateCloudStatus();};
- try{cloudLastDiagnostic=interactive?'Manueller Anmeldeversuch':'Automatischer Anmeldeversuch';tokenClient.requestAccessToken({prompt:interactive?'select_account':''})}catch(e){cloudLastDiagnostic='Anmeldung blockiert: '+e.message;cloudAuthPending=false;if(!cloudToken)cloudAuthState='error';updateCloudStatus();if(interactive)alert('Google-Anmeldung: '+e.message)}
-}
-function cloudLogin(){
- if(!CLOUD_CLIENT_ID){alert('Zuerst die Google-OAuth-Client-ID in google-config.js eintragen.');return}
- if(!tokenClient){alert('Google-Anmeldung ist noch nicht geladen. Bitte Internetverbindung prüfen und Seite neu laden.');return}
- cloudRequestToken(true);
-}
-function cloudLogout(){
- if(cloudDirty&&!confirm('Möglicherweise sind lokale Änderungen noch nicht mit Google Drive synchronisiert. Verbindung trotzdem trennen?'))return;
- const oldToken=cloudToken;
- cloudClearToken('disconnected');localStorage.removeItem(CLOUD_REMEMBER_KEY);
- cloudFileId=null;cloudBaseline=null;
- // Local data and unsynchronized changes are retained. Revoke only this device's current token.
- if(oldToken&&window.google?.accounts?.oauth2?.revoke)google.accounts.oauth2.revoke(oldToken,()=>{});
- manage();
-}
-async function driveFetch(path,opts={}){
- if(!cloudToken)throw Error('Nicht mit Google verbunden');
- let r=await fetch('https://www.googleapis.com/'+(opts.upload?'upload/drive/v3/':'drive/v3/')+path,{...opts,headers:{Authorization:'Bearer '+cloudToken,...(opts.headers||{})}});
- if(r.status===401){cloudLastDiagnostic='Google Drive HTTP 401: Zugriffstoken ungültig oder abgelaufen';cloudClearToken('expired');throw Error('Google-Anmeldung abgelaufen. Bitte erneut verbinden.')}
- if(!r.ok)throw Error('Google Drive HTTP '+r.status+': '+(await r.text()).slice(0,250));return r;
-}
-async function cloudFind(){const q=encodeURIComponent("name = '"+CLOUD_NAME+"' and trashed = false");let r=await driveFetch('files?spaces=appDataFolder&q='+q+'&fields=files(id,name,modifiedTime),nextPageToken&page_size=100');let x=await r.json();return (x.files||[]).sort((a,b)=>b.modifiedTime.localeCompare(a.modifiedTime))[0]||null}
-async function cloudRead(id){let r=await driveFetch('files/'+encodeURIComponent(id)+'?alt=media');let x=await r.json();if(x.format!=='julia-english-quest-backup'||!Array.isArray(x.units)||!x.progress||!x.settings)throw Error('Ungültiger Drive-Lernstand');return x}
-async function cloudWrite(payload){let body=JSON.stringify(payload);if(cloudFileId){await driveFetch('files/'+encodeURIComponent(cloudFileId)+'?uploadType=media',{method:'PATCH',headers:{'Content-Type':'application/json'},body,upload:true});return}let boundary='quest'+Date.now();let metadata={name:CLOUD_NAME,parents:['appDataFolder'],mimeType:'application/json'};let multi='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(metadata)+'\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'+body+'\r\n--'+boundary+'--';let r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{Authorization:'Bearer '+cloudToken,'Content-Type':'multipart/related; boundary='+boundary},body:multi});if(r.status===401){cloudLastDiagnostic='Google Drive HTTP 401: Zugriffstoken ungültig oder abgelaufen';cloudClearToken('expired');throw Error('Google-Anmeldung abgelaufen. Bitte erneut verbinden.')}if(!r.ok)throw Error('Google Drive Upload HTTP '+r.status+': '+(await r.text()).slice(0,250));cloudFileId=(await r.json()).id}
-function queueCloudSync(delay=2500){if(!cloudToken)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>cloudSync(false).catch(e=>{console.warn(e);updateCloudStatus('Synchronisierung fehlgeschlagen: '+e.message)}),delay)}
-async function cloudSync(interactive=false){if(!cloudToken||cloudBusy)return;cloudBusy=true;updateCloudStatus();try{let file=await cloudFind();cloudFileId=file?.id||null;let remote=file?await cloudRead(file.id):null;let local=cloudPayload();let localHash=cloudDigest(local),remoteHash=remote?cloudDigest(remote):null;
- if(!remote){await cloudWrite(local);cloudBaseline=localHash;cloudDirty=false;updateCloudStatus('Lernstand erstmals in Google Drive gespeichert.');return}
- if(localHash===remoteHash){cloudBaseline=localHash;cloudDirty=false;updateCloudStatus('Lernstand ist auf beiden Geräten identisch.');return}
- // Without a common ancestor, never overwrite a different cloud backup silently.
- const remoteChanged=cloudBaseline!==null&&remoteHash!==cloudBaseline;
- const localChanged=cloudBaseline===null||localHash!==cloudBaseline;
- if(!localChanged){await cloudApply(remote);cloudBaseline=remoteHash;cloudDirty=false;updateCloudStatus('Neuer Lernstand aus Google Drive geladen.');return}
- if(!remoteChanged&&cloudBaseline!==null){await cloudWrite(local);cloudBaseline=localHash;cloudDirty=false;updateCloudStatus('Lernstand in Google Drive gespeichert.');return}
- if(!interactive){updateCloudStatus('⚠️ Unterschiedliche Lernstände – unter „Units & Backup“ auf „Jetzt synchronisieren“ klicken.');return}
- const choice=prompt('Auf diesem Gerät und in Google Drive gibt es unterschiedliche Lernstände.\n\nTippe DRIVE, um den Drive-Stand auf dieses Gerät zu laden.\nTippe LOKAL, um den Stand dieses Geräts in Drive zu speichern.\nAbbrechen = nichts verändern.\n\nWICHTIG: Die andere Version wird dabei ersetzt. Sichere vorher beide Stände bei Bedarf manuell.', '');
- if(choice?.trim().toUpperCase()==='DRIVE'){await cloudApply(remote);cloudBaseline=remoteHash;cloudDirty=false;updateCloudStatus('Drive-Lernstand übernommen.')}else if(choice?.trim().toUpperCase()==='LOKAL'){await cloudWrite(local);cloudBaseline=localHash;cloudDirty=false;updateCloudStatus('Lokaler Lernstand in Drive gespeichert.')}else updateCloudStatus('Synchronisierung abgebrochen – beide Lernstände bleiben erhalten.');
- }catch(e){updateCloudStatus('Synchronisierung fehlgeschlagen: '+e.message);if(interactive)alert('Synchronisierung fehlgeschlagen: '+e.message)}finally{cloudBusy=false}}
-async function cloudApply(data){if(session)throw Error('Bitte erst die laufende Lernrunde beenden, bevor du einen anderen Lernstand lädst.');units=data.units;progress=data.progress;settings=data.settings;ensureSettings();sortUnits();await Promise.all([put('units',units),put('progress',progress),put('settings',settings)]);home()}
-window.addEventListener('online',()=>{if(cloudToken)queueCloudSync(500)});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){updateCloudStatus();if(cloudToken)queueCloudSync(500)}});
-setInterval(()=>{if(!document.hidden){updateCloudStatus();if(cloudToken)cloudSync(false).catch(console.warn)}},60000);
+window.addEventListener('online',()=>{if(cloudUser)queueCloudSync(500)});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloudUser)queueCloudSync(500)});
+setInterval(()=>{if(cloudUser&&!document.hidden)cloudSync(false).catch(console.warn)},60000);
 
-(async()=>{try{db=await openDB();let initial=await (await fetch('words.json')).json();units=await get('units')||initUnits(initial.units);progress=await get('progress')||{};settings=await get('settings')||settings;ensureSettings();sortUnits();await save();cloudDirty=false;home();showAppVersion();cloudInit().catch(console.warn);if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').then(()=>{updateCloudStatus()}).catch(()=>{$('#status').textContent='Offline-Installation prüfen'})}catch(e){app.innerHTML='<section class="card"><h2>Start nicht möglich</h2><p>Bitte die App über localhost oder eine HTTPS-Adresse öffnen. Details: '+esc(e.message)+'</p></section>'}})();
+(async()=>{try{db=await openDB();let initial=await (await fetch('words.json')).json();units=await get('units')||initUnits(initial.units);progress=await get('progress')||{};settings=await get('settings')||settings;ensureSettings();sortUnits();home();showAppVersion();cloudInit().catch(console.warn);if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').then(()=>{updateCloudStatus()}).catch(()=>{$('#status').textContent='Offline-Installation prüfen'})}catch(e){app.innerHTML='<section class="card"><h2>Start nicht möglich</h2><p>Bitte die App über localhost oder eine HTTPS-Adresse öffnen. Details: '+esc(e.message)+'</p></section>'}})();

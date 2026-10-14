@@ -1,0 +1,12 @@
+Julia's English Quest V9.4.0 – Updateprüfung
+
+NEU: version.json ist die serverseitige Quelle für die verfügbare Version.
+Die tatsächlich laufende Version steht weiterhin direkt in app.js.
+Der Update-Check ruft version.json mit Cache-Busting und no-store ab.
+Der Service Worker speichert version.json niemals offline.
+HTML-Navigation nutzt Netzwerk zuerst, mit Offline-Fallback.
+Versionsvergleich numerisch (nur neuere Versionen lösen Update-Hinweis aus).
+
+WICHTIG: Auf GitHub müssen app.js, sw.js und die NEUE version.json hochgeladen werden.
+index.html bleibt unverändert. google-config.js bleibt unverändert.
+Vor dem Update bitte ein Backup erstellen.

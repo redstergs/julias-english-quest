@@ -1,5 +1,5 @@
-const CACHE='english-quest-v9-10-1';
-const ASSETS=['./','./index.html','./app.js?v=9.10.1','./google-config.js','./words.json','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./heroine.webp'];
+const CACHE='english-quest-v9-11-0';
+const ASSETS=['./','./index.html','./app.js?v=9.11.0','./firebase-config.js','./words.json','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./heroine.webp'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('english-quest-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{

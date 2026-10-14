@@ -1,0 +1,12 @@
+Julia's English Quest 9.5.0
+
+- Richtige und falsche Antworten je Wort sichtbar; ab 9.5 zusätzlich getrennte Multiple-Choice- und Schreibstatistik.
+- Lernfortschritt (0/15/30/50/75/100 %) und Testsicherheit getrennt, auf Startseite, Übersicht und Unit.
+- Historische Gesamtzahlen werden weiterverwendet; frühere MC-/Schreibaufteilung ist nur näherungsweise ableitbar.
+- Testdatum und Erfolge mit ausgeschriebenem deutschem Datum.
+- Drive-Verbindung wird auf dem Gerät gemerkt; nach Start stiller OAuth-Versuch ohne dauerhaft gespeichertes Token. Google kann erneute Anmeldung verlangen.
+- Version und Updateprüfung unabhängig von Google-Anmeldung; Versionsdatei version.json mit Cache-Bypass.
+- Bestehende Units, XP, Schultestergebnisse und Backups bleiben erhalten.
+
+GitHub: app.js, sw.js, version.json hochladen. index.html kann unverändert bleiben.
+Vor dem Update manuelles Backup erstellen.

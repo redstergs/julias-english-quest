@@ -1,0 +1,12 @@
+Julia's English Quest 9.3.0
+
+- Konsolidierter Bereich „Mein Lernstand“: Fortschritt je Unit, Testtermine, Schulergebnisse und Auszeichnungen.
+- Einheitliche Einstufung sicher/unsicher/schwierig für Startseite, Unit-Ansicht und gezieltes Üben.
+- Schreib-Erfolgsserie wird ab jetzt separat gespeichert; bestehende Stufe-5- und schulisch beherrschte Wörter bleiben berücksichtigt.
+- Erneuter Fokusversuch beim Öffnen jeder Schreibfrage, auch im Modus „Schwierige & unsichere Wörter“.
+- Version 9.3.0 und aktualisierter Service-Worker-Cache.
+
+GitHub: app.js, index.html und sw.js aus diesem ZIP ersetzen.
+Google-Konfiguration und lokale Lernstände bleiben unverändert.
+Vor dem Update ein Backup erstellen.
+Hinweis: Mobile Browser dürfen das automatische Öffnen der Bildschirmtastatur blockieren.

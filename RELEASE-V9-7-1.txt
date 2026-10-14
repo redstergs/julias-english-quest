@@ -1,0 +1,1 @@
+V9.7.1: Startseite konsequent als eine blau-violette Hero-Karte mit Heldin links und drei Kacheln rechts; darunter unveraendertes Trainingsformular, gezieltes Ueben als erste Option. App-Skript cache-busted und network-first, um alte Layoutversionen zu vermeiden.

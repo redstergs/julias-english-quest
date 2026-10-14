@@ -1,0 +1,1 @@
+V9.7: Kompakte blau-violette Startseite mit bestehender Heldin, drei Kacheln (Test-Tage / Unit sicher / insgesamt sicher). Training direkt darunter mit gezieltem Schreiben als erste Option, sofern noch unsichere Woerter vorhanden. Richtung und Wortanzahl gelten auch fuer gezieltes Training. Bestehende Daten, Login und Lernregeln unveraendert.

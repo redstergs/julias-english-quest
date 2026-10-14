@@ -1,0 +1,1 @@
+V9.9.0: Google-Drive-Verbindungsstatus, Trennen-Schaltfläche, Token-Erneuerungsversuch vor Ablauf, unterscheidbare Fehlermeldungen. Keine automatische Popup-Anmeldung beim Start. Lokale Daten bleiben beim Trennen erhalten.
