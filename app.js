@@ -1,5 +1,6 @@
 'use strict';
-const APP_VERSION='9.11.1';
+const APP_VERSION='9.11.2';
+const FIREBASE_CONFIG=window.QUEST_FIREBASE_CONFIG||null;
 let nextQuestionTimer=null;
 function cancelAutoAdvance(){if(nextQuestionTimer!==null){clearTimeout(nextQuestionTimer);nextQuestionTimer=null}}
 function showAppVersion(){const el=document.getElementById('version-label');if(el)el.textContent="Julia's English Quest · Version "+APP_VERSION}
