@@ -1,0 +1,1 @@
+V9.11.2: Behebt ReferenceError FIREBASE_CONFIG is not defined beim Klick auf Units und Backup. Firebase-Konfiguration wird aus window.QUEST_FIREBASE_CONFIG gelesen. Keine Datenmigration.

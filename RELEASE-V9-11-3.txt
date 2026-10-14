@@ -1,0 +1,15 @@
+Julia’s English Quest V9.11.3 – Firebase-Synchronisierung
+
+- Kanonischer JSON-Vergleich: Firestore sortiert Map-Felder anders als der Browser.
+- Alte Vergleichsbasen aus V9.11.2 werden beim Laden normalisiert.
+- Änderungen während eines laufenden Abgleichs lösen anschließend einen weiteren Abgleich aus.
+- Transaktionsschutz gegen echte konkurrierende Schreibzugriffe bleibt aktiv.
+- Lokale Daten werden bei fehlgeschlagenen Uploads nicht gelöscht.
+
+INSTALLATION: ZIP-Inhalt ins GitHub-Pages-Repository hochladen.
+Vorher auf dem Tablet das aktuelle JSON-Backup aufbewahren.
+Auf dem Tablet nach dem Update zuerst den lokalen Lernstand kontrollieren,
+dann „Units & Backup“ -> „Jetzt synchronisieren“. Bei Konflikten
+LOKAL nur wählen, wenn der Tablet-Lernstand der gewünschte ist.
+
+WICHTIG: Kein Live-Test gegen dein Firebase-Projekt durchgeführt.

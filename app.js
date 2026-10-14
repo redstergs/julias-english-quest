@@ -1,11 +1,11 @@
 'use strict';
-const APP_VERSION='9.11.2';
+const APP_VERSION='9.11.3';
 const FIREBASE_CONFIG=window.QUEST_FIREBASE_CONFIG||null;
 let nextQuestionTimer=null;
 function cancelAutoAdvance(){if(nextQuestionTimer!==null){clearTimeout(nextQuestionTimer);nextQuestionTimer=null}}
 function showAppVersion(){const el=document.getElementById('version-label');if(el)el.textContent="Julia's English Quest · Version "+APP_VERSION}
 const $=s=>document.querySelector(s), app=$('#app');let db,units=[],progress={},settings={xp:0,streak:0,lastDay:null,tests:{},awards:[]},session=null;
-let cloudTimer=null,cloudBusy=false,cloudDirty=false,cloudBaseline=null;
+let cloudTimer=null,cloudBusy=false,cloudDirty=false,cloudBaseline=null,cloudPending=false,cloudLocalRevision=0;
 let cloudAuth=null,cloudStore=null,cloudUser=null,cloudAuthReady=false,cloudMessage='';
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>new Date().toLocaleDateString('en-CA');const plusDays=n=>{let d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')};
@@ -48,7 +48,7 @@ function openDB(){return new Promise((resolve,reject)=>{let r=indexedDB.open('ju
 function get(key){return new Promise((resolve,reject)=>{let r=db.transaction('data').objectStore('data').get(key);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 function put(key,value){return new Promise((resolve,reject)=>{let t=db.transaction('data','readwrite');t.objectStore('data').put(value,key);t.oncomplete=resolve;t.onerror=()=>reject(t.error)})}
 function ensureSettings(){settings.tests ||= {};settings.awards ||= []}
-async function save(){ensureSettings();await Promise.all([put('units',units),put('progress',progress),put('settings',settings)]);cloudDirty=true;queueCloudSync()}
+async function save(){ensureSettings();await Promise.all([put('units',units),put('progress',progress),put('settings',settings)]);cloudDirty=true;cloudLocalRevision++;queueCloudSync()}
 function initUnits(raw){return raw.map(u=>({id:u.id,title:u.title,released:u.released!==false,words:u.words.map((w,i)=>Array.isArray(w)?{id:u.id+'-'+String(i+1).padStart(3,'0'),en:w[0],de:w[1],example:''}:{id:w.id||u.id+'-'+String(i+1).padStart(3,'0'),en:w.en,de:w.de,example:w.example||''})}))}
 function stat(id){return progress[id]||{stage:0,correct:0,wrong:0,due:today(),last:null}};
 function progressUpdate(id,ok,write,voluntary=false){let s={...stat(id)};if(ok){s.correct++;if(!voluntary||s.stage<2)s.stage=Math.min(5,s.stage+1);if(voluntary){/* Freiwilliges MC-Training bis zur Schreibphase fördern; reguläre Fälligkeit nicht verschieben. */}else if(s.schoolMastered){s.reviewStep=Math.min(4,(s.reviewStep||0)+1);s.due=plusDays([7,14,30,60,90][s.reviewStep])}else{s.due=plusDays([0,0,1,3,7,14][s.stage])}settings.xp+=write?20:10}else{s.wrong++;s.schoolMastered=false;s.reviewStep=0;s.stage=2;s.due=today()}if(write){s.writeAttempts=(s.writeAttempts||0)+1;s.writeWrong=(s.writeWrong||0)+(ok?0:1);s.lastWriteOk=ok;s.writeCorrect=(s.writeCorrect||0)+(ok?1:0);s.writeStreak=ok?(s.writeStreak||0)+1:0}else{s.mcAttempts=(s.mcAttempts||0)+1;s.mcCorrect=(s.mcCorrect||0)+(ok?1:0);s.mcWrong=(s.mcWrong||0)+(ok?0:1)} s.last=today();progress[id]=s;save()}
@@ -169,7 +169,22 @@ function download(name,obj){let blob=new Blob([JSON.stringify(obj,null,2)],{type
 // Firebase Authentication persists the user session across PWA restarts.
 // The learning database remains local (IndexedDB), including offline use.
 const cloudPayload=()=>({format:'julia-english-quest-backup',version:1,units,progress,settings});
-const cloudDigest=o=>JSON.stringify(o);
+// Firestore normalizes map key ordering. Canonicalize nested objects before comparing.
+// Older versions stored the raw JSON string as baseline; normalize that too.
+function cloudCanonical(value){
+ if(Array.isArray(value))return value.map(cloudCanonical);
+ if(value&&typeof value==='object'){
+  const sorted={};for(const key of Object.keys(value).sort()){
+   if(value[key]!==undefined)sorted[key]=cloudCanonical(value[key]);
+  }return sorted;
+ }
+ return value;
+}
+const cloudDigest=o=>JSON.stringify(cloudCanonical(o));
+function cloudNormalizeBaseline(value){
+ if(!value)return null;
+ try{return cloudDigest(JSON.parse(value))}catch(e){return null}
+}
 const cloudBaselineKey=uid=>'firebase-baseline-'+uid;
 function cloudStatusText(){
  if(!FIREBASE_CONFIG)return 'Firebase-Konfiguration fehlt.';
@@ -193,7 +208,7 @@ async function cloudInit(){
   await cloudAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
   cloudAuth.onAuthStateChanged(async user=>{
    cloudUser=user;cloudAuthReady=true;cloudMessage='';
-   clearTimeout(cloudTimer);cloudBaseline=user?(await get(cloudBaselineKey(user.uid))||null):null;
+   clearTimeout(cloudTimer);cloudBaseline=user?cloudNormalizeBaseline(await get(cloudBaselineKey(user.uid))):null;
    updateCloudStatus();
    if(user)queueCloudSync(1200);
   },error=>{cloudAuthReady=true;updateCloudStatus('Anmeldefehler: '+error.message)});
@@ -208,7 +223,12 @@ async function cloudLogout(){
  if(cloudDirty&&!confirm('Lokale Änderungen sind möglicherweise noch nicht synchronisiert. Trotzdem abmelden?'))return;
  await cloudAuth.signOut();cloudUser=null;cloudBaseline=null;updateCloudStatus();manage();
 }
-function queueCloudSync(delay=2500){if(!cloudUser)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>cloudSync(false).catch(e=>{console.warn(e);updateCloudStatus('Synchronisierung fehlgeschlagen: '+e.message)}),delay)}
+function queueCloudSync(delay=2500){
+ if(!cloudUser)return;
+ if(cloudBusy){cloudPending=true;return}
+ clearTimeout(cloudTimer);
+ cloudTimer=setTimeout(()=>cloudSync(false).catch(e=>{console.warn(e);updateCloudStatus('Synchronisierung fehlgeschlagen: '+e.message)}),delay);
+}
 async function cloudApply(data){
  if(session)throw Error('Bitte zuerst die laufende Lernrunde beenden.');
  if(!data||data.format!=='julia-english-quest-backup'||!Array.isArray(data.units)||!data.progress||!data.settings)throw Error('Ungültiger Firebase-Lernstand');
@@ -217,7 +237,7 @@ async function cloudApply(data){
 }
 async function cloudSync(interactive=false){
  if(!cloudUser||cloudBusy||!navigator.onLine)return;
- const user=cloudUser;cloudBusy=true;updateCloudStatus();
+ const user=cloudUser;cloudBusy=true;const startRevision=cloudLocalRevision;updateCloudStatus();
  try{
   const ref=cloudStore.collection('users').doc(user.uid).collection('data').doc('learning');
   // Read from server so an old offline cache cannot overwrite a newer device.
@@ -227,7 +247,7 @@ async function cloudSync(interactive=false){
   if(remote&&(!Array.isArray(remote.units)||!remote.progress||!remote.settings))throw Error('Firebase-Datenformat ungültig');
   const local=cloudPayload(),localHash=cloudDigest(local),remoteHash=remote?cloudDigest(remote):null;
   const baseline=cloudBaseline;
-  if(remoteHash===localHash){cloudBaseline=localHash;await put(cloudBaselineKey(user.uid),localHash);cloudDirty=false;updateCloudStatus('✓ Beide Geräte auf demselben Lernstand.');return}
+  if(remoteHash===localHash){cloudBaseline=localHash;await put(cloudBaselineKey(user.uid),localHash);cloudDirty=cloudLocalRevision!==startRevision;updateCloudStatus('✓ Beide Geräte auf demselben Lernstand.');return}
   let action=null;
   if(!remote){action='upload'}
   else if(baseline===localHash){action='download'}
@@ -239,6 +259,7 @@ async function cloudSync(interactive=false){
   }
   if(!action){updateCloudStatus('⚠️ Unterschiedliche Lernstände. In „Units & Backup“ auf „Jetzt synchronisieren“ klicken.');return}
   if(action==='download'){
+   if(cloudLocalRevision!==startRevision)throw Error('Während des Downloads wurden neue Lernfortschritte gespeichert. Bitte erneut synchronisieren.');
    await cloudApply(remote);cloudBaseline=remoteHash;await put(cloudBaselineKey(user.uid),remoteHash);cloudDirty=false;
    updateCloudStatus('✓ Lernstand aus Firebase übernommen.');return;
   }
@@ -247,15 +268,15 @@ async function cloudSync(interactive=false){
   await cloudStore.runTransaction(async tx=>{
    const current=await tx.get(ref);
    const now=current.exists?cloudDigest(current.data().payload):null;
-   if(now!==remoteHash)throw Error('Firebase wurde inzwischen auf einem anderen Gerät verändert. Bitte erneut synchronisieren.');
+   if(now!==remoteHash)throw Error('Firebase hat sich seit dem letzten Serverabruf geändert. Bitte erneut synchronisieren.');
    tx.set(ref,{payload:local,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
   });
   cloudBaseline=localHash;await put(cloudBaselineKey(user.uid),localHash);
-  cloudDirty=cloudDigest(cloudPayload())!==localHash;
+  cloudDirty=cloudLocalRevision!==startRevision||cloudDigest(cloudPayload())!==localHash;
   updateCloudStatus(cloudDirty?'Neue lokale Änderungen warten auf Synchronisierung.':'✓ Lernstand in Firebase gespeichert.');
-  if(cloudDirty)queueCloudSync(1500);
+  if(cloudDirty)cloudPending=true;
  }catch(e){updateCloudStatus('Synchronisierung fehlgeschlagen: '+e.message);if(interactive)alert('Synchronisierung fehlgeschlagen: '+e.message)}
- finally{cloudBusy=false;updateCloudStatus()}
+ finally{cloudBusy=false;updateCloudStatus();if(cloudPending&&cloudUser===user){cloudPending=false;queueCloudSync(1500)}}
 }
 window.addEventListener('online',()=>{if(cloudUser)queueCloudSync(500)});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloudUser)queueCloudSync(500)});

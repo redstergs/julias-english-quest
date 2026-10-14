@@ -1,0 +1,1 @@
+V9.11.1: Firebase-Zustandsvariablen korrekt initialisiert. Behebt JavaScript-ReferenceError beim Oeffnen von Units & Backup. Keine Aenderungen an Lernstaenden oder Datenformat.
