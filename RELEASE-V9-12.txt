@@ -1,0 +1,24 @@
+Julia's English Quest – Version 9.12.0
+
+Neu:
+- Hinweis „Noch … Wort/Wörter zu festigen“ startet eine kurze Schreibrunde.
+  Bis zu zehn unsichere/schwierige Wörter, ergänzt um bis zu drei andere
+  Wiederholungswörter aus allen freigegebenen Units (maximal zehn insgesamt).
+- Test-Kachel öffnet den vorhandenen Probetest. Nach dem Testdatum bleibt
+  ein ausstehendes Schulergebnis sichtbar und lässt sich direkt eintragen.
+- Unit-Kachel öffnet den vorhandenen Lernstand mit aufgeklappten Wortlisten.
+- Insgesamt sichere Wörter bleiben ohne Interaktion.
+- Heroine als App-Icon, Browser-Icon und Apple-Touch-Icon.
+- Bestehendes Layout und Lernregeln bleiben erhalten.
+
+Installation:
+Dateien in den bestehenden Webordner hochladen und vorhandene Dateien ersetzen.
+Keine Lernstands- oder Unit-JSON importieren. Lernstände bleiben in IndexedDB
+und Firebase erhalten. Danach „Auf Update prüfen“ wählen; Version 9.12.0 prüfen.
+Ein bereits installiertes App-Icon kann vom Betriebssystem verzögert aktualisiert
+werden.
+
+Prüfung:
+JavaScript-Syntax und Funktionsprüfungen für gemischte Festigungsrunde,
+Probetest inklusive Tastaturbedienung, abgelaufenen Test und Unit-Übersicht.
+Ein vollständiger Browser-Test war in dieser Umgebung nicht verfügbar.

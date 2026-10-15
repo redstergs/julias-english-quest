@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='9.11.3';
+const APP_VERSION='9.12.0';
 const FIREBASE_CONFIG=window.QUEST_FIREBASE_CONFIG||null;
 let nextQuestionTimer=null;
 function cancelAutoAdvance(){if(nextQuestionTimer!==null){clearTimeout(nextQuestionTimer);nextQuestionTimer=null}}
@@ -56,22 +56,37 @@ function home(){
  cancelAutoAdvance();sortUnits();ensureSettings();session=null;
  const mastered=overallScore().secure.length;
  const upcoming=activeUnits().map(u=>({u,t:settings.tests[u.id]||{}})).filter(x=>x.t.date&&!x.t.result&&x.t.date>=today()).sort((a,b)=>a.t.date.localeCompare(b.t.date));
- const nextTest=upcoming[0]||null;
+ const pending=activeUnits().map(u=>({u,t:settings.tests[u.id]||{}})).filter(x=>x.t.date&&!x.t.result&&x.t.date<today()).sort((a,b)=>b.t.date.localeCompare(a.t.date));
+ const nextTest=pending[0]||upcoming[0]||null;
  const unfinished=[...activeUnits()].reverse().find(u=>unitScore(u).secure.length<u.words.length);
  const focus=nextTest?.u||unfinished||null;
  const days=nextTest?Math.round((new Date(nextTest.t.date+'T12:00:00')-new Date(today()+'T12:00:00'))/86400000):null;
  const secure=focus?unitScore(focus).secure.length:0,total=focus?.words.length||0,remaining=total-secure;
- const leftValue=nextTest?String(days):focus?'📖':'✓';
- const leftLabel=nextTest?(days===1?'Tag bis zum Test':'Tage bis zum Test'):focus?'Nächste Unit':'Wiederholen';
+ const leftValue=nextTest?(days<0?'✍️':String(days)):focus?'📖':'✓';
+ const leftLabel=nextTest?(days<0?'Testergebnis eintragen':days===1?'Tag bis zum Test':'Tage bis zum Test'):focus?'Nächste Unit':'Wiederholen';
  const leftNote=nextTest?longDate(nextTest.t.date):focus?focus.title:'Alles geschafft!';
  const focusNote=nextTest?`Nächster Test: ${longDate(nextTest.t.date)}`:focus?`Dein nächstes Abenteuer: ${focus.title}`:'Alle Wörter sicher – Lust auf eine Wiederholung?';
  const goalNote=focus&&remaining?`🎯 Noch ${remaining} ${remaining===1?'Wort':'Wörter'} zu festigen!`:focus?'🌟 Diese Unit hast du geschafft!':'🌟 Zeit für eine lockere Wiederholung!';
  const unitBar=focus?`<div class="quest-unit-bar" role="progressbar" aria-valuenow="${secure}" aria-valuemin="0" aria-valuemax="${total}" aria-label="Sichere Wörter in ${esc(focus.title)}"><span style="width:${total?secure/total*100:0}%"></span></div>`:'';
- app.innerHTML=`<section class="card quest-banner"><div class="quest-portrait"><img class="quest-heroine" src="heroine.webp" alt="Deine Heldin mit Daumen hoch"></div><div class="quest-banner-content"><h2>Ready for English, Julia? ✨</h2><p class="quest-intro">Du bist schon richtig gut unterwegs!</p><div class="quest-metrics"><div class="quest-metric"><span class="quest-metric-icon">📅</span><strong>${leftValue}</strong><span>${leftLabel}</span><small>${esc(leftNote)}</small></div><div class="quest-metric"><span class="quest-metric-icon">📚</span><strong>${focus?`${secure}/${total}`:'✓'}</strong><span>${focus?esc(focus.title)+' sicher':'Alle Units sicher'}</span>${unitBar}</div><div class="quest-metric"><span class="quest-metric-icon">🏆</span><strong>${mastered}</strong><span>Insgesamt sicher</span><small>⭐ ${Number(settings.xp||0).toLocaleString('de-AT')} XP</small></div></div><p class="quest-goal">${goalNote}</p></div></section><section class="card quest-training"><h2>Los geht's!</h2><p class="muted quest-training-intro">Was möchtest du heute trainieren?</p><label for="unit">Training</label><select id="unit">${focus&&remaining?`<option value="targeted">🎯 Schwierige und unsichere Wörter üben (${esc(focus.title)})</option>`:''}<option value="daily">🌟 Tagestraining – alle Units</option>${activeUnits().map(u=>`<option value="${esc(u.id)}">${esc(u.title)}</option>`).join('')}</select><label for="direction">Abfragerichtung</label><select id="direction"><option value="de-en">Deutsch → Englisch</option><option value="both">Beide Richtungen</option><option value="en-de">Englisch → Deutsch</option></select><label for="count">Anzahl Wörter</label><select id="count"><option value="10">10 Wörter</option><option value="20">20 Wörter</option><option value="999">Alle verfügbaren</option></select><div class="buttons" style="margin-top:18px"><button id="start">▶ Lernen starten</button><button id="overview" class="secondary">📊 Mein Lernstand · Tests · Erfolge</button><button id="manage" class="secondary">⚙️ Units und Backup</button></div></section>`;
+ app.innerHTML=`<section class="card quest-banner"><div class="quest-portrait"><img class="quest-heroine" src="heroine.webp" alt="Deine Heldin mit Daumen hoch"></div><div class="quest-banner-content"><h2>Ready for English, Julia? ✨</h2><p class="quest-intro">Du bist schon richtig gut unterwegs!</p><div class="quest-metrics"><div id="hero-test" class="quest-metric"${nextTest?' role="button" tabindex="0"':''}><span class="quest-metric-icon">📅</span><strong>${leftValue}</strong><span>${leftLabel}</span><small>${esc(leftNote)}</small></div><div id="hero-unit" class="quest-metric"${focus?' role="button" tabindex="0"':''}><span class="quest-metric-icon">📚</span><strong>${focus?`${secure}/${total}`:'✓'}</strong><span>${focus?esc(focus.title)+' sicher':'Alle Units sicher'}</span>${unitBar}</div><div class="quest-metric"><span class="quest-metric-icon">🏆</span><strong>${mastered}</strong><span>Insgesamt sicher</span><small>⭐ ${Number(settings.xp||0).toLocaleString('de-AT')} XP</small></div></div><p id="hero-goal" class="quest-goal"${focus&&remaining?' role="button" tabindex="0"':''}>${goalNote}</p></div></section><section class="card quest-training"><h2>Los geht's!</h2><p class="muted quest-training-intro">Was möchtest du heute trainieren?</p><label for="unit">Training</label><select id="unit">${focus&&remaining?`<option value="targeted">🎯 Schwierige und unsichere Wörter üben (${esc(focus.title)})</option>`:''}<option value="daily">🌟 Tagestraining – alle Units</option>${activeUnits().map(u=>`<option value="${esc(u.id)}">${esc(u.title)}</option>`).join('')}</select><label for="direction">Abfragerichtung</label><select id="direction"><option value="de-en">Deutsch → Englisch</option><option value="both">Beide Richtungen</option><option value="en-de">Englisch → Deutsch</option></select><label for="count">Anzahl Wörter</label><select id="count"><option value="10">10 Wörter</option><option value="20">20 Wörter</option><option value="999">Alle verfügbaren</option></select><div class="buttons" style="margin-top:18px"><button id="start">▶ Lernen starten</button><button id="overview" class="secondary">📊 Mein Lernstand · Tests · Erfolge</button><button id="manage" class="secondary">⚙️ Units und Backup</button></div></section>`;
+ if(nextTest)bindHeroAction('#hero-test',()=>days<0?schoolResult(nextTest.u.id):targetedTraining(nextTest.u.id,true));
+ if(focus)bindHeroAction('#hero-unit',()=>{unitDashboard(focus.id);document.querySelectorAll('details').forEach(d=>d.open=true)});
+ if(focus&&remaining)bindHeroAction('#hero-goal',()=>quickPractice(focus.id));
  $('#unit').onchange=e=>applyTheme(e.target.value==='targeted'?'daily':e.target.value);
  $('#start').onclick=()=>{if($('#unit').value==='targeted'&&focus){const groups=unitScore(focus),candidates=[...groups.hard,...groups.unsure];if(!candidates.length)return alert('Alle Wörter dieser Unit sind bereits sicher!');const n=Number($('#count').value),dir=$('#direction').value;const chosen=shuffle(candidates).slice(0,n);session={queue:chosen.map(w=>w.id),voluntaryIds:new Set(chosen.map(w=>w.id)),index:0,dir,review:[],seen:0,correct:0,finished:false,initialMC:[],mcPass:0,writingPass:true,forceWrite:true,mock:false,unitId:focus.id};question()}else start()};
  $('#overview').onclick=overview;$('#manage').onclick=manage;
  applyTheme('daily');
+}
+
+function bindHeroAction(selector,action){const el=$(selector);el.onclick=action;el.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&!e.repeat){e.preventDefault();action()}}}
+function quickPractice(id){
+ cancelAutoAdvance();const u=activeUnits().find(u=>u.id===id);if(!u)return home();
+ const groups=unitScore(u),targets=shuffle([...groups.hard,...groups.unsure]).slice(0,10);
+ if(!targets.length)return home();
+ const ids=new Set(targets.map(w=>w.id));
+ const extras=shuffle(all().filter(w=>!ids.has(w.id)&&stat(w.id).stage>=2)).slice(0,Math.min(3,Math.max(0,10-targets.length)));
+ const chosen=shuffle([...targets,...extras]);
+ session={queue:chosen.map(w=>w.id),voluntaryIds:new Set(chosen.filter(w=>stat(w.id).due>today()).map(w=>w.id)),index:0,dir:'de-en',review:[],seen:0,correct:0,finished:false,initialMC:[],mcPass:0,writingPass:true,forceWrite:true,mock:false,unitId:id};question();
 }
 
 function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
