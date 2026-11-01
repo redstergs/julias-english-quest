@@ -1,5 +1,12 @@
 # Versionsverlauf
 
+## Version 9.12.5
+
+- Tagestraining priorisiert die erste freigegebene, nicht vollständig schulisch beherrschte Unit.
+- 80 Prozent aktueller Schulstoff, 20 Prozent fällige Wiederholungen aus früheren Units. Fehlende Wörter werden aus der jeweils anderen Gruppe aufgefüllt.
+- Neue und unsichere Wörter der aktuellen Unit haben Vorrang. Spätere Units werden nicht zum Auffüllen vorgezogen. Bei zu wenigen passenden Wörtern ist die Runde kürzer.
+- Sind alle freigegebenen Units schulisch beherrscht, gilt die bisherige Auswahl nach Fälligkeit.
+
 ## Version 9.12.4
 
 - Falsche Multiple-Choice-Antworten behalten die bisherige Lernstufe bei. Erst zwei richtige MC-Antworten führen zur Schreibstufe.

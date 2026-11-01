@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='9.12.4';
+const APP_VERSION='9.12.5';
 const FIREBASE_CONFIG=window.QUEST_FIREBASE_CONFIG||null;
 let nextQuestionTimer=null;
 function cancelAutoAdvance(){if(nextQuestionTimer!==null){clearTimeout(nextQuestionTimer);nextQuestionTimer=null}}
@@ -90,7 +90,28 @@ function quickPractice(id){
 }
 
 function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
-function start(){const unit=$('#unit').value,dir=$('#direction').value,n=Number($('#count').value);let a=all().filter(w=>unit==='daily'||w.unit===unit);if(!a.length)return alert('Keine Vokabeln vorhanden');let due=shuffle(a.filter(w=>stat(w.id).due<=today())).sort((a,b)=>(stat(a.id).stage-stat(b.id).stage));let other=shuffle(a.filter(w=>stat(w.id).due>today())).sort((x,y)=>{const sx=stat(x.id),sy=stat(y.id);return Number(!!sx.schoolMastered)-Number(!!sy.schoolMastered)||sx.stage-sy.stage});let chosen=[...due,...other].slice(0,n);if(!chosen.length)return alert('Keine Vokabeln vorhanden');applyTheme(unit);session={queue:chosen.map(w=>w.id),voluntaryIds:new Set(chosen.filter(w=>stat(w.id).due>today()).map(w=>w.id)),index:0,dir,review:[],seen:0,correct:0,finished:false};question()}
+function dailyWords(n){
+ sortUnits();
+ const released=activeUnits().filter(u=>u.words.length);
+ const focus=released.find(u=>!u.words.every(w=>stat(w.id).schoolMastered));
+ const words=all();
+ const rank=a=>shuffle(a).sort((a,b)=>{
+   const x=stat(a.id),y=stat(b.id);
+   return x.stage-y.stage||Number(x.due>today())-Number(y.due>today());
+ });
+ if(!focus){
+   return [...rank(words.filter(w=>stat(w.id).due<=today())),...rank(words.filter(w=>stat(w.id).due>today()))].slice(0,n);
+ }
+ const earlier=new Set(released.slice(0,released.indexOf(focus)).map(u=>u.id));
+ const current=rank(words.filter(w=>w.unit===focus.id));
+ const reviews=shuffle(words.filter(w=>earlier.has(w.unit)&&stat(w.id).due<=today())).sort((a,b)=>stat(a.id).due.localeCompare(stat(b.id).due));
+ const chosen=current.slice(0,Math.ceil(n*.8));
+ chosen.push(...reviews.slice(0,n-chosen.length));
+ const used=new Set(chosen.map(w=>w.id));
+ chosen.push(...current.filter(w=>!used.has(w.id)).slice(0,n-chosen.length));
+ return shuffle(chosen);
+}
+function start(){const unit=$('#unit').value,dir=$('#direction').value,n=Number($('#count').value);let a=all().filter(w=>unit==='daily'||w.unit===unit);if(!a.length)return alert('Keine Vokabeln vorhanden');let due=shuffle(a.filter(w=>stat(w.id).due<=today())).sort((a,b)=>(stat(a.id).stage-stat(b.id).stage));let other=shuffle(a.filter(w=>stat(w.id).due>today())).sort((x,y)=>{const sx=stat(x.id),sy=stat(y.id);return Number(!!sx.schoolMastered)-Number(!!sy.schoolMastered)||sx.stage-sy.stage});let chosen=unit==='daily'?dailyWords(n):[...due,...other].slice(0,n);if(!chosen.length)return alert('Keine Vokabeln vorhanden');applyTheme(unit);session={queue:chosen.map(w=>w.id),voluntaryIds:new Set(chosen.filter(w=>stat(w.id).due>today()).map(w=>w.id)),index:0,dir,review:[],seen:0,correct:0,finished:false};question()}
 function question(){cancelAutoAdvance();if(!session)return;applyTheme(byId(session.queue[session.index])?.unit||'daily');let s=session,w=byId(s.queue[s.index]);if(!w){complete();return}s.current=w.id;s.ask=s.dir==='both'?(s.index%2===0?'de-en':'en-de'):s.dir;s.write=!!s.forceWrite||stat(w.id).stage>=2;s.answered=false;const target=s.ask==='de-en'?w.en:w.de.split('|')[0];let choices=shuffle([target,...shuffle(all().filter(x=>x.id!==w.id).map(x=>s.ask==='de-en'?x.en:x.de.split('|')[0]).filter(x=>norm(x)!==norm(target))).filter((v,i,a)=>a.indexOf(v)===i).slice(0,3)]);app.innerHTML=`<section class="card"><div class="flex"><span class="muted small">Frage ${s.index+1} von ${s.queue.length}</span><span class="pill">${s.write?'✍️ Schreiben · 20 XP':'🎯 Multiple Choice · 10 XP'}</span></div><div class="bar" style="margin:16px 0"><div class="fill" style="width:${(s.index+1)/s.queue.length*100}%"></div></div><div class="prompt"><div class="muted small">Übersetze auf ${s.ask==='de-en'?'Englisch':'Deutsch'}</div><strong>${esc(s.ask==='de-en'?w.de.split('|').join(' / '):w.en)}</strong></div>${s.write?`<form id="answerform"><input id="answer" type="text" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Deine Übersetzung …" required><button style="margin-top:10px;width:100%">Antwort prüfen</button></form>`:`<div class="answer-grid">${choices.map(c=>`<button class="answer" data-choice="${esc(c)}">${esc(c)}</button>`).join('')}</div>`}<div id="feedback"></div><p class="muted small">${esc(w.unitTitle)}</p></section>`;if(s.write){$('#answerform').onsubmit=e=>{e.preventDefault();check($('#answer').value)};const field=$('#answer');if(field){field.focus({preventScroll:true});if(document.activeElement!==field)requestAnimationFrame(()=>field.focus({preventScroll:true}));setTimeout(()=>{if(session===s&&!s.answered&&document.activeElement!==field)field.focus({preventScroll:true})},80)}}else document.querySelectorAll('[data-choice]').forEach(b=>b.onclick=()=>check(b.dataset.choice))}
 // A round asks each selected word exactly once. Progress applies to later rounds.
 function advanceSession(s){
