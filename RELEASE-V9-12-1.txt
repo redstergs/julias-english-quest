@@ -1,0 +1,3 @@
+Version 9.12.1 – Begrenzte Lernrunden
+Fehler werden je Lernphase höchstens einmal wiederholt. Die Runde endet auch bei wiederholten Fehlern. Neue Wörter durchlaufen weiterhin Multiple Choice und Schreiben.
+Installation: Dateien wie bisher im bestehenden App-Verzeichnis ersetzen und Auf Update prüfen wählen.
