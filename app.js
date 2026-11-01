@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='9.12.3';
+const APP_VERSION='9.12.4';
 const FIREBASE_CONFIG=window.QUEST_FIREBASE_CONFIG||null;
 let nextQuestionTimer=null;
 function cancelAutoAdvance(){if(nextQuestionTimer!==null){clearTimeout(nextQuestionTimer);nextQuestionTimer=null}}
@@ -51,7 +51,7 @@ function ensureSettings(){settings.tests ||= {};settings.awards ||= []}
 async function save(){ensureSettings();await Promise.all([put('units',units),put('progress',progress),put('settings',settings)]);cloudDirty=true;cloudLocalRevision++;queueCloudSync()}
 function initUnits(raw){return raw.map(u=>({id:u.id,title:u.title,released:u.released!==false,words:u.words.map((w,i)=>Array.isArray(w)?{id:u.id+'-'+String(i+1).padStart(3,'0'),en:w[0],de:w[1],example:''}:{id:w.id||u.id+'-'+String(i+1).padStart(3,'0'),en:w.en,de:w.de,example:w.example||''})}))}
 function stat(id){return progress[id]||{stage:0,correct:0,wrong:0,due:today(),last:null}};
-function progressUpdate(id,ok,write,voluntary=false){let s={...stat(id)};if(ok){s.correct++;if(!voluntary||s.stage<2)s.stage=Math.min(5,s.stage+1);if(voluntary){/* Freiwilliges MC-Training bis zur Schreibphase fördern; reguläre Fälligkeit nicht verschieben. */}else if(s.schoolMastered){s.reviewStep=Math.min(4,(s.reviewStep||0)+1);s.due=plusDays([7,14,30,60,90][s.reviewStep])}else{s.due=plusDays([0,0,1,3,7,14][s.stage])}settings.xp+=write?20:10}else{s.wrong++;s.schoolMastered=false;s.reviewStep=0;s.stage=2;s.due=today()}if(write){s.writeAttempts=(s.writeAttempts||0)+1;s.writeWrong=(s.writeWrong||0)+(ok?0:1);s.lastWriteOk=ok;s.writeCorrect=(s.writeCorrect||0)+(ok?1:0);s.writeStreak=ok?(s.writeStreak||0)+1:0}else{s.mcAttempts=(s.mcAttempts||0)+1;s.mcCorrect=(s.mcCorrect||0)+(ok?1:0);s.mcWrong=(s.mcWrong||0)+(ok?0:1)} s.last=today();progress[id]=s;save()}
+function progressUpdate(id,ok,write,voluntary=false){let s={...stat(id)};if(ok){s.correct++;if(!voluntary||s.stage<2)s.stage=Math.min(5,s.stage+1);if(voluntary){/* Freiwilliges MC-Training bis zur Schreibphase fördern; reguläre Fälligkeit nicht verschieben. */}else if(s.schoolMastered){s.reviewStep=Math.min(4,(s.reviewStep||0)+1);s.due=plusDays([7,14,30,60,90][s.reviewStep])}else{s.due=plusDays([0,0,1,3,7,14][s.stage])}settings.xp+=write?20:10}else{s.wrong++;s.schoolMastered=false;s.reviewStep=0;s.stage=write?2:s.stage;s.due=today()}if(write){s.writeAttempts=(s.writeAttempts||0)+1;s.writeWrong=(s.writeWrong||0)+(ok?0:1);s.lastWriteOk=ok;s.writeCorrect=(s.writeCorrect||0)+(ok?1:0);s.writeStreak=ok?(s.writeStreak||0)+1:0}else{s.mcAttempts=(s.mcAttempts||0)+1;s.mcCorrect=(s.mcCorrect||0)+(ok?1:0);s.mcWrong=(s.mcWrong||0)+(ok?0:1)} s.last=today();progress[id]=s;save()}
 function home(){
  cancelAutoAdvance();sortUnits();ensureSettings();session=null;
  const mastered=overallScore().secure.length;

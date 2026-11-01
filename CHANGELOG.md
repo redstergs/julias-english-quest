@@ -1,5 +1,11 @@
 # Versionsverlauf
 
+## Version 9.12.4
+
+- Falsche Multiple-Choice-Antworten behalten die bisherige Lernstufe bei. Erst zwei richtige MC-Antworten führen zur Schreibstufe.
+- Schreibfehler setzen weiterhin auf die erste Schreibstufe zurück.
+- Die gewählte Anzahl Abfragen bleibt unverändert.
+
 ## Version 9.12.3
 
 - 10 Wörter bedeutet genau 10 Abfragen, 20 Wörter genau 20 Abfragen (soweit verfügbar).
