@@ -1,1 +1,0 @@
-V9.5.1: Datumsformatierung korrigiert. Testdaten und Auszeichnungen werden als ausgeschriebenes deutsches Datum angezeigt. GitHub: app.js, sw.js, version.json ersetzen.
