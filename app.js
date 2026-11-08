@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='9.12.5';
+const APP_VERSION='9.12.6';
 const FIREBASE_CONFIG=window.QUEST_FIREBASE_CONFIG||null;
 let nextQuestionTimer=null;
 function cancelAutoAdvance(){if(nextQuestionTimer!==null){clearTimeout(nextQuestionTimer);nextQuestionTimer=null}}
@@ -58,8 +58,7 @@ function home(){
  const upcoming=activeUnits().map(u=>({u,t:settings.tests[u.id]||{}})).filter(x=>x.t.date&&!x.t.result&&x.t.date>=today()).sort((a,b)=>a.t.date.localeCompare(b.t.date));
  const pending=activeUnits().map(u=>({u,t:settings.tests[u.id]||{}})).filter(x=>x.t.date&&!x.t.result&&x.t.date<today()).sort((a,b)=>b.t.date.localeCompare(a.t.date));
  const nextTest=pending[0]||upcoming[0]||null;
- const unfinished=[...activeUnits()].reverse().find(u=>unitScore(u).secure.length<u.words.length);
- const focus=nextTest?.u||unfinished||null;
+ const focus=currentLearningUnit();
  const days=nextTest?Math.round((new Date(nextTest.t.date+'T12:00:00')-new Date(today()+'T12:00:00'))/86400000):null;
  const secure=focus?unitScore(focus).secure.length:0,total=focus?.words.length||0,remaining=total-secure;
  const leftValue=nextTest?(days<0?'✍️':String(days)):focus?'📖':'✓';
@@ -90,10 +89,21 @@ function quickPractice(id){
 }
 
 function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+// Learning priority is independent of reminders for missing school results.
+function currentLearningUnit(){
+ sortUnits();ensureSettings();
+ const released=activeUnits().filter(u=>u.words.length);
+ const upcoming=released.filter(u=>{const t=settings.tests[u.id]||{};return t.date&&!t.result&&t.date>=today()}).sort((a,b)=>settings.tests[a.id].date.localeCompare(settings.tests[b.id].date));
+ if(upcoming.length)return upcoming[0];
+ const candidates=released.filter(u=>!u.words.every(w=>stat(w.id).schoolMastered));
+ // Move on to the next released unit after a test, without assuming it was passed.
+ const next=candidates.find(u=>{const t=settings.tests[u.id]||{};return !(t.date&&t.date<today()&&!t.result)});
+ return next||candidates[0]||null;
+}
 function dailyWords(n){
  sortUnits();
  const released=activeUnits().filter(u=>u.words.length);
- const focus=released.find(u=>!u.words.every(w=>stat(w.id).schoolMastered));
+ const focus=currentLearningUnit();
  const words=all();
  const rank=a=>shuffle(a).sort((a,b)=>{
    const x=stat(a.id),y=stat(b.id);

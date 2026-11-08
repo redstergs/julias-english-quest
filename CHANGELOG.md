@@ -1,5 +1,13 @@
 # Versionsverlauf
 
+## Version 9.12.6
+
+- Bevorstehende Tests priorisieren die zugehörige Unit im Tagestraining und auf der Startseite.
+- Ist ein Test vorbei und das Ergebnis noch offen, wird die nächste freigegebene, noch nicht schulisch beherrschte Unit bevorzugt.
+- Fehlt eine neue Unit, bleibt die bisherige Unit im Lernfokus.
+- Die Test-Kachel erinnert unabhängig davon weiterhin an ausstehende Schulergebnisse.
+- Keine automatische Änderung des schulischen Lernstands; bestehende 80/20-Auswahl und kurze Runden bleiben erhalten.
+
 ## Version 9.12.5
 
 - Tagestraining priorisiert die erste freigegebene, nicht vollständig schulisch beherrschte Unit.
