@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='9.12.6';
+const APP_VERSION='9.12.7';
 const FIREBASE_CONFIG=window.QUEST_FIREBASE_CONFIG||null;
 let nextQuestionTimer=null;
 function cancelAutoAdvance(){if(nextQuestionTimer!==null){clearTimeout(nextQuestionTimer);nextQuestionTimer=null}}
@@ -11,7 +11,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const today=()=>new Date().toLocaleDateString('en-CA');const plusDays=n=>{let d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')};
 const longDate=value=>{if(!value)return '–';const match=String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!match)return String(value);const d=new Date(+match[1],+match[2]-1,+match[3],12);return new Intl.DateTimeFormat('de-AT',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d)};
 const shortDate=value=>longDate(value);
-const norm=s=>s.toLocaleLowerCase('de').trim().replace(/[.!?]/g,'').replace(/\s+/g,' ').replace(/^to /,'');
+const norm=s=>String(s).normalize('NFKC').toLocaleLowerCase('de').replace(/[’‘ʼ＇`´]/g,"'").replace(/[\u200B-\u200D\uFEFF]/g,'').trim().replace(/[.!?…]+$/u,'').trim().replace(/\s+/g,' ').replace(/^to /,'');
 // Accepted spellings: alternatives separated by | or /, optional parenthesized
 // phrases, and optional infinitive "to". Preserve the original vocabulary data.
 function answerVariants(raw){
@@ -97,7 +97,7 @@ function currentLearningUnit(){
  if(upcoming.length)return upcoming[0];
  const candidates=released.filter(u=>!u.words.every(w=>stat(w.id).schoolMastered));
  // Move on to the next released unit after a test, without assuming it was passed.
- const next=candidates.find(u=>{const t=settings.tests[u.id]||{};return !(t.date&&t.date<today()&&!t.result)});
+ const next=[...candidates].reverse().find(u=>{const t=settings.tests[u.id]||{};return !t.result&&!(t.date&&t.date<today())});
  return next||candidates[0]||null;
 }
 function dailyWords(n){
@@ -119,7 +119,7 @@ function dailyWords(n){
  chosen.push(...reviews.slice(0,n-chosen.length));
  const used=new Set(chosen.map(w=>w.id));
  chosen.push(...current.filter(w=>!used.has(w.id)).slice(0,n-chosen.length));
- return shuffle(chosen);
+ return chosen;
 }
 function start(){const unit=$('#unit').value,dir=$('#direction').value,n=Number($('#count').value);let a=all().filter(w=>unit==='daily'||w.unit===unit);if(!a.length)return alert('Keine Vokabeln vorhanden');let due=shuffle(a.filter(w=>stat(w.id).due<=today())).sort((a,b)=>(stat(a.id).stage-stat(b.id).stage));let other=shuffle(a.filter(w=>stat(w.id).due>today())).sort((x,y)=>{const sx=stat(x.id),sy=stat(y.id);return Number(!!sx.schoolMastered)-Number(!!sy.schoolMastered)||sx.stage-sy.stage});let chosen=unit==='daily'?dailyWords(n):[...due,...other].slice(0,n);if(!chosen.length)return alert('Keine Vokabeln vorhanden');applyTheme(unit);session={queue:chosen.map(w=>w.id),voluntaryIds:new Set(chosen.filter(w=>stat(w.id).due>today()).map(w=>w.id)),index:0,dir,review:[],seen:0,correct:0,finished:false};question()}
 function question(){cancelAutoAdvance();if(!session)return;applyTheme(byId(session.queue[session.index])?.unit||'daily');let s=session,w=byId(s.queue[s.index]);if(!w){complete();return}s.current=w.id;s.ask=s.dir==='both'?(s.index%2===0?'de-en':'en-de'):s.dir;s.write=!!s.forceWrite||stat(w.id).stage>=2;s.answered=false;const target=s.ask==='de-en'?w.en:w.de.split('|')[0];let choices=shuffle([target,...shuffle(all().filter(x=>x.id!==w.id).map(x=>s.ask==='de-en'?x.en:x.de.split('|')[0]).filter(x=>norm(x)!==norm(target))).filter((v,i,a)=>a.indexOf(v)===i).slice(0,3)]);app.innerHTML=`<section class="card"><div class="flex"><span class="muted small">Frage ${s.index+1} von ${s.queue.length}</span><span class="pill">${s.write?'✍️ Schreiben · 20 XP':'🎯 Multiple Choice · 10 XP'}</span></div><div class="bar" style="margin:16px 0"><div class="fill" style="width:${(s.index+1)/s.queue.length*100}%"></div></div><div class="prompt"><div class="muted small">Übersetze auf ${s.ask==='de-en'?'Englisch':'Deutsch'}</div><strong>${esc(s.ask==='de-en'?w.de.split('|').join(' / '):w.en)}</strong></div>${s.write?`<form id="answerform"><input id="answer" type="text" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Deine Übersetzung …" required><button style="margin-top:10px;width:100%">Antwort prüfen</button></form>`:`<div class="answer-grid">${choices.map(c=>`<button class="answer" data-choice="${esc(c)}">${esc(c)}</button>`).join('')}</div>`}<div id="feedback"></div><p class="muted small">${esc(w.unitTitle)}</p></section>`;if(s.write){$('#answerform').onsubmit=e=>{e.preventDefault();check($('#answer').value)};const field=$('#answer');if(field){field.focus({preventScroll:true});if(document.activeElement!==field)requestAnimationFrame(()=>field.focus({preventScroll:true}));setTimeout(()=>{if(session===s&&!s.answered&&document.activeElement!==field)field.focus({preventScroll:true})},80)}}else document.querySelectorAll('[data-choice]').forEach(b=>b.onclick=()=>check(b.dataset.choice))}
@@ -128,7 +128,7 @@ function advanceSession(s){
  s.index++;
  return s.index<s.queue.length;
 }
-function check(value){cancelAutoAdvance();let s=session;if(s.answered)return;s.answered=true;let w=byId(s.current);let variants=answerVariants(s.ask==='de-en'?w.en:w.de);if(s.ask==='de-en'&&w.en==='there is')variants.push("there's");const expected=s.ask==='de-en'?w.en:w.de;let ok=acceptsAnswer(expected,value)||(!s.write&&norm(value)===norm(s.ask==='de-en'?w.en:w.de.split('|')[0]))||(s.ask==='de-en'&&w.en==='there is'&&norm(value)==="there's");s.seen++;if(ok)s.correct++;else if(!s.review.includes(w.id))s.review.push(w.id);if(!s.mock)progressUpdate(w.id,ok,s.write,s.voluntaryIds.has(w.id));if(!ok)s.voluntaryIds.delete(w.id);document.querySelectorAll('.answer').forEach(b=>b.disabled=true);let form=$('#answerform');if(form)form.querySelectorAll('input,button').forEach(x=>x.disabled=true);$('#feedback').innerHTML=`<div class="feedback ${ok?'':'bad'}"><strong>${ok?'🌟 Excellent!':'Für die nächste Lernrunde vorgemerkt.'}</strong><p>${ok?'Gut gemacht!':'Richtige Antwort: <strong>'+esc(variants.join(' / '))+'</strong>'}</p><button id="next">Weiter →</button></div>`;const nextButton=$('#next');let advanced=false;nextButton.onclick=()=>{if(advanced||session!==s)return;advanced=true;cancelAutoAdvance();if(!advanceSession(s))return complete();question()};if(ok){nextQuestionTimer=setTimeout(()=>{nextQuestionTimer=null;if(session===s&&s.answered&&!advanced&&document.getElementById('next')===nextButton)nextButton.click()},3000)}}
+function check(value){cancelAutoAdvance();let s=session;if(s.answered)return;s.answered=true;let w=byId(s.current);let variants=answerVariants(s.ask==='de-en'?w.en:w.de);if(s.ask==='de-en'&&w.en==='there is')variants.push("there's");const expected=s.ask==='de-en'?w.en:w.de;let ok=acceptsAnswer(expected,value)||(!s.write&&norm(value)===norm(s.ask==='de-en'?w.en:w.de.split('|')[0]))||(s.ask==='de-en'&&w.en==='there is'&&norm(value)==="there's");s.seen++;if(ok)s.correct++;else if(!s.review.includes(w.id))s.review.push(w.id);if(!s.mock)progressUpdate(w.id,ok,s.write,s.voluntaryIds.has(w.id));if(!ok)s.voluntaryIds.delete(w.id);document.querySelectorAll('.answer').forEach(b=>b.disabled=true);let form=$('#answerform');if(form)form.querySelectorAll('input,button').forEach(x=>x.disabled=true);$('#feedback').innerHTML=`<div class="feedback ${ok?'':'bad'}"><strong>${ok?'🌟 Excellent!':'Für die nächste Lernrunde vorgemerkt.'}</strong><p>${ok?'Gut gemacht!':'Richtige Antwort: <strong>'+esc(variants.join(' / '))+'</strong>'}</p><button id="next">Weiter →</button></div>`;const nextButton=$('#next');let advanced=false;nextButton.onclick=()=>{if(advanced||session!==s)return;advanced=true;cancelAutoAdvance();if(!advanceSession(s))return complete();question()};if(ok){nextQuestionTimer=setTimeout(()=>{nextQuestionTimer=null;if(session===s&&s.answered&&!advanced&&document.getElementById('next')===nextButton)nextButton.click()},1000)}}
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&session?.answered&&$('#next')&&!e.repeat){e.preventDefault();$('#next').click()}});
 function advanceOnEnter(e){if(e.key==='Enter'&&session?.answered&&!e.repeat){e.preventDefault();$('#next')?.click()}}
 function complete(){cancelAutoAdvance();if(session&&!session.mock){ensureSettings();let dates=settings.studyDays||[];if(!dates.includes(today()))dates.push(today());settings.studyDays=dates;if(dates.length>=5)award('five-days','🔥 Lernheldin · an 5 Tagen geübt');save()}if(cloudUser)queueCloudSync(150);let s=session;app.innerHTML=`<section class="card" style="text-align:center"><div style="font-size:3rem">🏆</div><h2>Fantastic, Julia!</h2><p><strong>${s.correct} von ${s.seen}</strong> Antworten richtig</p><p>${s.mock?'Probetest – '+Math.round(s.correct/Math.max(1,s.seen)*100)+' % richtig':'Gesamt: ⭐ '+settings.xp+' XP'}</p><div class="buttons"><button id="again">Noch eine Runde</button><button id="home" class="secondary">Zur Startseite</button></div></section>`;$('#again').onclick=()=>s.unitId?unitDashboard(s.unitId):home();$('#home').onclick=home}
@@ -304,8 +304,8 @@ async function cloudSync(interactive=false){
   else if(baseline===localHash){action='download'}
   else if(baseline===remoteHash){action='upload'}
   else if(interactive){
-   const choice=prompt('Unterschiedliche Lernstände in Firebase und auf diesem Gerät.\n\nDRIVE = Firebase-Lernstand übernehmen\nLOKAL = lokalen Lernstand hochladen\nAbbrechen = nichts ändern\n\nACHTUNG: Vor dem Ersetzen nach Möglichkeit beide Stände sichern.','');
-   if(choice?.trim().toUpperCase()==='DRIVE')action='download';
+   const choice=prompt('Unterschiedliche Lernstände in Firebase und auf diesem Gerät.\n\nFIREBASE = Firebase-Lernstand übernehmen\nLOKAL = lokalen Lernstand hochladen\nAbbrechen = nichts ändern\n\nACHTUNG: Vor dem Ersetzen nach Möglichkeit beide Stände sichern.','');
+   if(choice?.trim().toUpperCase()==='FIREBASE')action='download';
    if(choice?.trim().toUpperCase()==='LOKAL')action='upload';
   }
   if(!action){updateCloudStatus('⚠️ Unterschiedliche Lernstände. In „Units & Backup“ auf „Jetzt synchronisieren“ klicken.');return}
