@@ -1,0 +1,223 @@
+{
+  "id": "unit-5",
+  "title": "Unit 5 – This is our band",
+  "released": true,
+  "words": [
+    {
+      "id": "unit-5-026",
+      "en": "(pocket) money",
+      "de": "(Taschen-)Geld",
+      "example": "I get my pocket money from my mum and dad."
+    },
+    {
+      "id": "unit-5-001",
+      "en": "boyfriend",
+      "de": "fester Freund",
+      "example": "Jack is her boyfriend."
+    },
+    {
+      "id": "unit-5-005-can",
+      "en": "can",
+      "de": "können",
+      "example": "She can play the drums."
+    },
+    {
+      "id": "unit-5-017",
+      "en": "can",
+      "de": "Dose",
+      "example": "Look, he carries fifteen cans."
+    },
+    {
+      "id": "unit-5-005-cannot",
+      "en": "cannot / can't",
+      "de": "nicht können",
+      "example": "He can't sing."
+    },
+    {
+      "id": "unit-5-006",
+      "en": "concert",
+      "de": "Konzert",
+      "example": "Let’s go to the concert tomorrow."
+    },
+    {
+      "id": "unit-5-008",
+      "en": "Don’t worry.",
+      "de": "Keine Sorge.",
+      "example": ""
+    },
+    {
+      "id": "unit-5-023",
+      "en": "economy",
+      "de": "Wirtschaft",
+      "example": "The economy is the world of money."
+    },
+    {
+      "id": "unit-5-024",
+      "en": "hospital",
+      "de": "Krankenhaus",
+      "example": "The Clown Doctors go to hospitals and help children."
+    },
+    {
+      "id": "unit-5-019",
+      "en": "hundred",
+      "de": "hundert",
+      "example": "Can you eat a hundred apples?"
+    },
+    {
+      "id": "unit-5-020",
+      "en": "in one go",
+      "de": "in einem Zug|auf einmal",
+      "example": "Can you drink five cans in one go?"
+    },
+    {
+      "id": "unit-5-021",
+      "en": "Is that so?",
+      "de": "Ach wirklich?",
+      "example": ""
+    },
+    {
+      "id": "unit-5-002",
+      "en": "its",
+      "de": "sein/e|ihr/e",
+      "example": "This is my band. Its name is Project 11."
+    },
+    {
+      "id": "unit-5-009",
+      "en": "job",
+      "de": "Arbeit|Aufgabe",
+      "example": "She has a good job."
+    },
+    {
+      "id": "unit-5-034",
+      "en": "nothing",
+      "de": "nichts",
+      "example": "There’s nothing in the garden."
+    },
+    {
+      "id": "unit-5-010",
+      "en": "perfect",
+      "de": "perfekt",
+      "example": "The job is perfect for you."
+    },
+    {
+      "id": "unit-5-027",
+      "en": "pound",
+      "de": "Pfund",
+      "example": "A cup of apple juice is 2 pounds."
+    },
+    {
+      "id": "unit-5-028",
+      "en": "profit",
+      "de": "Gewinn|Profit",
+      "example": "It’s 120 pounds. That’s my profit."
+    },
+    {
+      "id": "unit-5-029",
+      "en": "school canteen",
+      "de": "Schulkantine",
+      "example": "We have apple juice in our school canteen."
+    },
+    {
+      "id": "unit-5-004",
+      "en": "sister",
+      "de": "Schwester",
+      "example": "Jessica is my sister."
+    },
+    {
+      "id": "unit-5-035",
+      "en": "Sorry?",
+      "de": "Entschuldigung?|Wie bitte?",
+      "example": ""
+    },
+    {
+      "id": "unit-5-030",
+      "en": "table",
+      "de": "Tisch",
+      "example": "I put a table in our playground."
+    },
+    {
+      "id": "unit-5-031",
+      "en": "teacher",
+      "de": "Lehrer/Lehrerin",
+      "example": "Mr Davis is my teacher at school."
+    },
+    {
+      "id": "unit-5-022",
+      "en": "This is me.",
+      "de": "Das bin ich.",
+      "example": ""
+    },
+    {
+      "id": "unit-5-011",
+      "en": "to carry",
+      "de": "tragen",
+      "example": "Can you carry my guitar?"
+    },
+    {
+      "id": "unit-5-007",
+      "en": "to dance",
+      "de": "tanzen",
+      "example": "Let’s dance to the music!"
+    },
+    {
+      "id": "unit-5-018",
+      "en": "to drink",
+      "de": "trinken",
+      "example": "I can’t drink fifteen cans."
+    },
+    {
+      "id": "unit-5-025",
+      "en": "to laugh",
+      "de": "lachen",
+      "example": "They make children laugh."
+    },
+    {
+      "id": "unit-5-003",
+      "en": "to play",
+      "de": "spielen",
+      "example": "They play the guitar."
+    },
+    {
+      "id": "unit-5-012",
+      "en": "to stand on",
+      "de": "auf etwas stehen",
+      "example": "I can stand on my head."
+    },
+    {
+      "id": "unit-5-014",
+      "en": "to touch",
+      "de": "berühren",
+      "example": "Please don’t touch my guitar."
+    },
+    {
+      "id": "unit-5-015",
+      "en": "to walk on",
+      "de": "auf etwas gehen",
+      "example": "Can you walk on your hands?"
+    },
+    {
+      "id": "unit-5-033",
+      "en": "to wash",
+      "de": "waschen",
+      "example": "I wash my mum’s car."
+    },
+    {
+      "id": "unit-5-016",
+      "en": "to wiggle",
+      "de": "wackeln",
+      "example": "He can wiggle his ears."
+    },
+    {
+      "id": "unit-5-013",
+      "en": "tongue",
+      "de": "Zunge",
+      "example": "He can touch his nose with his tongue."
+    },
+    {
+      "id": "unit-5-032",
+      "en": "uncle",
+      "de": "Onkel",
+      "example": "My uncle is my dad’s brother."
+    }
+  ]
+}
